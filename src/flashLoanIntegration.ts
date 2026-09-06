@@ -5,34 +5,31 @@ import BN from 'bn.js';
 export class FlashLoanIntegration {
   private connection: Connection;
   private wallet: Keypair;
-  private flashLoanProgramId: PublicKey;
-  private provider: PublicKey;
+  private flashLoanProgramId: PublicKey | null = null;
+  private provider: PublicKey | null = null;
 
   constructor(
     connection: Connection, 
     wallet: Keypair,
-    flashLoanProgramId: PublicKey = new PublicKey('FLashL9...'), // Texture Finance program ID
-    provider: PublicKey = new PublicKey('Texture...') // Texture provider
+    flashLoanProgramId?: PublicKey,
+    provider?: PublicKey
   ) {
     this.connection = connection;
     this.wallet = wallet;
-    this.flashLoanProgramId = flashLoanProgramId;
-    this.provider = provider;
+    this.flashLoanProgramId = flashLoanProgramId || null;
+    this.provider = provider || null;
   }
 
   async initialize(): Promise<void> {
     try {
       console.log('Initializing Flash Loan SDK...');
       
-      // Verify flash loan program exists
-      const programAccount = await this.connection.getAccountInfo(this.flashLoanProgramId);
-      if (!programAccount) {
-        throw new Error('Flash loan program not found');
-      }
-
-      console.log('✓ Flash Loan SDK initialized');
-      console.log(`Program ID: ${this.flashLoanProgramId.toString()}`);
-      console.log(`Provider: ${this.provider.toString()}`);
+      // Note: Using placeholder mode - actual flash loan program integration requires
+      // specific program IDs and provider addresses
+      console.log('⚠️  Flash loan SDK in placeholder mode');
+      console.log('Note: Actual integration requires Texture Finance or similar provider');
+      
+      console.log('✓ Flash Loan SDK initialized (placeholder mode)');
     } catch (error) {
       console.error('Failed to initialize Flash Loan SDK:', error);
       throw error;

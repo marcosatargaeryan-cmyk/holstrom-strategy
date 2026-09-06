@@ -38,7 +38,7 @@ class HolstromIntegratedSDKStrategy {
     
     this.meteora = new MeteoraDLMMIntegration(connection, wallet, CONFIG.poolA);
     this.orca = new OrcaWhirlpoolIntegration(connection, wallet, CONFIG.poolB);
-    this.flashLoan = new FlashLoanIntegration(connection, wallet);
+    this.flashLoan = new FlashLoanIntegration(connection, wallet); // Placeholder mode
   }
 
   async executeIntegratedTest(): Promise<IntegrationTestResult> {
