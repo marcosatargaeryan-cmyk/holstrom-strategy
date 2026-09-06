@@ -15,6 +15,7 @@
     "run:actual": "ts-node src/runHolstromActual.ts",
     "run:tx": "ts-node src/runHolstromRealTx.ts",
     "run:fully-real": "ts-node src/runHolstromFullyReal.ts",
+    "run:real-swaps": "ts-node src/runHolstromRealSwaps.ts",
     "rust:test": "cargo test",
     "rust:run": "cargo run"
   },
