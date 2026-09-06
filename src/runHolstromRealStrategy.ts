@@ -445,25 +445,37 @@ class HolstromRealStrategy {
     this.log('Step 4.7: Final Sale in Pool B');
     
     // Sell accumulated SOL in Pool B
-    const solToSell = this.currentSOL - CONFIG.flashLoanSOL - CONFIG.recursiveLoanSOL;
+    // Only sell the profit SOL (excluding loan amounts)
+    const solToSell = Math.max(0, this.currentSOL - CONFIG.flashLoanSOL - CONFIG.recursiveLoanSOL);
     const usdcReceived = solToSell * this.currentPrice * 0.9996; // With fee
     
-    this.currentSOL -= solToSell;
-    this.currentUSDC += usdcReceived;
-    
-    // Execute real transaction
-    const signature = await this.executeSwapTransaction(solToSell, 'Final Sale');
-    
-    this.strategySteps.push({
-      step: 'Final Sale',
-      description: `Sold ${solToSell.toFixed(4)} SOL in Pool B`,
-      solDelta: -solToSell,
-      usdcDelta: usdcReceived,
-      priceChange: 0,
-      signature: signature || undefined
-    });
-    
-    this.log(`🔥 Final Sale: -${solToSell.toFixed(4)} SOL, +${usdcReceived.toFixed(2)} USDC`);
+    if (solToSell > 0) {
+      this.currentSOL -= solToSell;
+      this.currentUSDC += usdcReceived;
+      
+      // Execute real transaction
+      const signature = await this.executeSwapTransaction(solToSell, 'Final Sale');
+      
+      this.strategySteps.push({
+        step: 'Final Sale',
+        description: `Sold ${solToSell.toFixed(4)} SOL in Pool B`,
+        solDelta: -solToSell,
+        usdcDelta: usdcReceived,
+        priceChange: 0,
+        signature: signature || undefined
+      });
+      
+      this.log(`🔥 Final Sale: -${solToSell.toFixed(4)} SOL, +${usdcReceived.toFixed(2)} USDC`);
+    } else {
+      this.log(`⚠ No SOL available for final sale`);
+      this.strategySteps.push({
+        step: 'Final Sale',
+        description: `No SOL available for final sale`,
+        solDelta: 0,
+        usdcDelta: 0,
+        priceChange: 0
+      });
+    }
   }
 
   private async repayFlashLoans(): Promise<void> {
