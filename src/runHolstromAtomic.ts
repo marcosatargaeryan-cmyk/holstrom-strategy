@@ -218,6 +218,16 @@ class HolstromAtomicStrategy {
     try {
       const transaction = new Transaction();
       
+      // Add a dummy instruction to allow transaction signing
+      // In full implementation, this would be replaced with real SDK instructions
+      transaction.add(
+        SystemProgram.transfer({
+          fromPubkey: this.wallet.publicKey,
+          toPubkey: this.wallet.publicKey,
+          lamports: 1
+        })
+      );
+      
       // 1. Flash Loan SOL Instruction (simulated - would use real flash loan program)
       this.log('Adding flash loan SOL instruction...');
       // transaction.add(flashLoanSOLInstruction);
@@ -255,7 +265,7 @@ class HolstromAtomicStrategy {
       // transaction.add(repayLoansInstructions);
       
       this.log('⚠️  ATOMIC TRANSACTION BUILT (SDK INTEGRATION REQUIRED)');
-      this.log('Note: Current implementation uses placeholders - real SDK integration needed for actual execution');
+      this.log('Note: Current implementation uses placeholder - real SDK integration needed for actual execution');
       
       return transaction;
       
