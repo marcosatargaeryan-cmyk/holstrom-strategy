@@ -1,5 +1,5 @@
 import { Connection, PublicKey, Keypair, Transaction, SystemProgram, LAMPORTS_PER_SOL } from '@solana/web3.js';
-import { DLMM_POOL } from '@meteora-ag/dlmm';
+import * as DLMM from '@meteora-ag/dlmm';
 
 // Configuration based on strategy specification
 const CONFIG = {
@@ -155,7 +155,7 @@ class HolstromRealStrategy {
         
         // Try to get DLMM pool instance
         try {
-          const dlmmPool = await DLMM_POOL.create(this.connection, CONFIG.poolA);
+          const dlmmPool = await DLMM.DLMM_POOL.create(this.connection, CONFIG.poolA);
           this.log('✓ DLMM pool initialized successfully');
           
           // Get current price
@@ -195,7 +195,7 @@ class HolstromRealStrategy {
         this.log('✓ Pool A account found - attempting real position');
         
         try {
-          const dlmmPool = await DLMM_POOL.create(this.connection, CONFIG.poolA);
+          const dlmmPool = await DLMM.DLMM_POOL.create(this.connection, CONFIG.poolA);
           this.log('✓ DLMM pool initialized for position');
           
           // Position creation requires proper keypair management
