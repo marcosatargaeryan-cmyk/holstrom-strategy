@@ -21,6 +21,7 @@
     "run:atomic": "ts-node src/runHolstromAtomic.ts",
     "test:meteora": "ts-node src/testMeteoraIntegration.ts",
     "test:orca": "ts-node src/testOrcaIntegration.ts",
+    "test:flashloan": "ts-node src/testFlashLoanIntegration.ts",
     "rust:test": "cargo test",
     "rust:run": "cargo run"
   },
