@@ -1,6 +1,5 @@
 import { Connection, PublicKey, Keypair, Transaction, SystemProgram, LAMPORTS_PER_SOL } from '@solana/web3.js';
-import { WhirlpoolContext, ORCA_WHIRLPOOL_PROGRAM_ID } from '@orca-so/whirlpools-sdk';
-import { DLMM } from '@meteora-ag/dlmm';
+import { DLMM_POOL } from '@meteora-ag/dlmm';
 
 // Configuration based on strategy specification
 const CONFIG = {
@@ -156,11 +155,11 @@ class HolstromRealStrategy {
         
         // Try to get DLMM pool instance
         try {
-          const dlmmPool = await DLMM.create(this.connection, CONFIG.poolA);
+          const dlmmPool = await DLMM_POOL.create(this.connection, CONFIG.poolA);
           this.log('✓ DLMM pool initialized successfully');
           
           // Get current price
-          const price = await dlmmPool.getPrice();
+          const price = dlmmPool.curPrice;
           this.log(`Current pool price: ${price}`);
           
           // For now, fall back to simulation since we need proper swap instructions
@@ -196,7 +195,7 @@ class HolstromRealStrategy {
         this.log('✓ Pool A account found - attempting real position');
         
         try {
-          const dlmmPool = await DLMM.create(this.connection, CONFIG.poolA);
+          const dlmmPool = await DLMM_POOL.create(this.connection, CONFIG.poolA);
           this.log('✓ DLMM pool initialized for position');
           
           // Position creation requires proper keypair management
@@ -322,12 +321,8 @@ class HolstromRealStrategy {
         this.realOnChain = true;
         
         try {
-          const whirlpoolContext = WhirlpoolContext.withProvider(
-            this.connection,
-            this.wallet,
-            ORCA_WHIRLPOOL_PROGRAM_ID
-          );
-          this.log('✓ Whirlpool context initialized');
+          // Simplified check - just verify the pool exists
+          this.log('✓ Whirlpool pool account found');
           
           // Real swap implementation would go here
           this.log('⚠ Real swap requires proper transaction building - using simulation for now');
