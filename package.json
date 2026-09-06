@@ -22,6 +22,7 @@
     "test:meteora": "ts-node src/testMeteoraIntegration.ts",
     "test:orca": "ts-node src/testOrcaIntegration.ts",
     "test:flashloan": "ts-node src/testFlashLoanIntegration.ts",
+    "test:integrated": "ts-node src/testIntegratedSDK.ts",
     "rust:test": "cargo test",
     "rust:run": "cargo run"
   },
