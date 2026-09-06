@@ -15,7 +15,6 @@ import {
   TOKEN_PROGRAM_ID,
   ASSOCIATED_TOKEN_PROGRAM_ID
 } from '@solana/spl-token';
-import * as BN from 'bn.js';
 
 // Configuration based on strategy specification
 const CONFIG = {
@@ -271,7 +270,8 @@ class HolstromRealSwapsStrategy {
         // The sqrt price is at offset 16 in the whirlpool data
         const data = poolBData.data;
         if (data.length >= 32) {
-          const sqrtPriceBN = new BN(data.slice(16, 32), 'le');
+          const sqrtPriceValue = Buffer.from(data.slice(16, 32)).readBigUInt64LE(0);
+        const sqrtPrice = Number(sqrtPriceValue) / (1 << 64);
           const sqrtPrice = sqrtPriceBN.toNumber() / (1 << 64);
           const price = Math.pow(sqrtPrice, 2);
           this.log(`📊 Real pool price from data: $${price}`);
