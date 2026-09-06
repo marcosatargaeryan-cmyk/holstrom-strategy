@@ -271,8 +271,7 @@ class HolstromRealSwapsStrategy {
         const data = poolBData.data;
         if (data.length >= 32) {
           const sqrtPriceValue = Buffer.from(data.slice(16, 32)).readBigUInt64LE(0);
-        const sqrtPrice = Number(sqrtPriceValue) / (1 << 64);
-          const sqrtPrice = sqrtPriceBN.toNumber() / (1 << 64);
+          const sqrtPrice = Number(sqrtPriceValue) / (1 << 64);
           const price = Math.pow(sqrtPrice, 2);
           this.log(`📊 Real pool price from data: $${price}`);
           return price;
