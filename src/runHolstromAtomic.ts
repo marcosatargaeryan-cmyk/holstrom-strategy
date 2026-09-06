@@ -298,7 +298,7 @@ class HolstromAtomicStrategy {
       
       this.log('✓ Transaction size acceptable for atomic execution');
       
-      // Sign transaction
+      // Sign transaction BEFORE serialization
       transaction.sign(this.wallet);
       
       // Send transaction
