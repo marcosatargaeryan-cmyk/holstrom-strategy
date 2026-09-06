@@ -262,8 +262,7 @@ class HolstromActualStrategy {
         const poolData = await this.connection.getAccountInfo(CONFIG.poolA);
         if (poolData && this.realOnChain) {
           try {
-            const dlmmPool = await DLMM_POOL.create(this.connection, CONFIG.poolA);
-            this.log(`✓ DLMM pool ready for swap ${i + 1}`);
+            this.log(`✓ DLMM pool data available for swap ${i + 1}`);
             
             // Get swap quote
             const solToSwap = CONFIG.recursiveIncrement;
