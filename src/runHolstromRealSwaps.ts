@@ -267,14 +267,21 @@ class HolstromRealSwapsStrategy {
       const poolBData = await this.connection.getAccountInfo(CONFIG.poolB);
       if (poolBData && poolBData.data.length > 0) {
         // Orca Whirlpool data structure
-        // The sqrt price is at offset 16 in the whirlpool data
+        // The sqrt price is at offset 32 in the whirlpool data (after 8 bytes discriminator + 24 bytes other fields)
         const data = poolBData.data;
-        if (data.length >= 32) {
-          const sqrtPriceValue = Buffer.from(data.slice(16, 32)).readBigUInt64LE(0);
+        if (data.length >= 40) {
+          const sqrtPriceValue = Buffer.from(data.slice(32, 40)).readBigUInt64LE(0);
           const sqrtPrice = Number(sqrtPriceValue) / (1 << 64);
           const price = Math.pow(sqrtPrice, 2);
-          this.log(`📊 Real pool price from data: $${price}`);
-          return price;
+          
+          // Sanity check - if price is unrealistic, fall back to configured price
+          if (price > 0 && price < 1000000) {
+            this.log(`📊 Real pool price from data: $${price}`);
+            return price;
+          } else {
+            this.log(`⚠ Unreasonable price from data: $${price}, using configured price`);
+            return CONFIG.initialPrice;
+          }
         }
       }
       
