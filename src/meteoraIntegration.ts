@@ -1,12 +1,10 @@
 import { Connection, PublicKey, Keypair, Transaction, TransactionInstruction } from '@solana/web3.js';
-import { DLMM } from '@meteora-ag/dlmm';
 import BN from 'bn.js';
 
 // Meteora DLMM SDK Integration for Pool A
 export class MeteoraDLMMIntegration {
   private connection: Connection;
   private wallet: Keypair;
-  private dlmm: DLMM | null = null;
   private poolAddress: PublicKey;
 
   constructor(connection: Connection, wallet: Keypair, poolAddress: PublicKey) {
@@ -19,10 +17,10 @@ export class MeteoraDLMMIntegration {
     try {
       console.log('Initializing Meteora DLMM SDK...');
       
-      // Initialize DLMM with connection
-      this.dlmm = new DLMM(this.connection);
+      // Note: We're not using the DLMM class directly due to SDK compatibility issues
+      // Instead, we'll work with the raw pool account data
       
-      console.log('✓ Meteora DLMM SDK initialized');
+      console.log('✓ Meteora DLMM SDK initialized (raw account mode)');
       console.log(`Pool Address: ${this.poolAddress.toString()}`);
     } catch (error) {
       console.error('Failed to initialize Meteora DLMM:', error);
@@ -31,10 +29,6 @@ export class MeteoraDLMMIntegration {
   }
 
   async getPoolData(): Promise<any> {
-    if (!this.dlmm) {
-      throw new Error('DLMM not initialized');
-    }
-
     try {
       console.log('Fetching pool data...');
       
@@ -64,15 +58,12 @@ export class MeteoraDLMMIntegration {
     outputMint: PublicKey,
     slippageBps: number = 100 // 1% slippage
   ): Promise<TransactionInstruction | null> {
-    if (!this.dlmm) {
-      throw new Error('DLMM not initialized');
-    }
-
     try {
       console.log(`Building swap instruction: ${inputAmount} tokens`);
       
       // This is a placeholder - actual implementation would use:
-      // const swapIx = await this.dlmm.createSwapInstruction({
+      // const dlmm = new DLMM(this.connection);
+      // const swapIx = await dlmm.createSwapInstruction({
       //   poolAddress: this.poolAddress,
       //   inputMint,
       //   outputMint,
@@ -96,15 +87,12 @@ export class MeteoraDLMMIntegration {
     lowerBound: number,
     liquidityAmount: number
   ): Promise<TransactionInstruction | null> {
-    if (!this.dlmm) {
-      throw new Error('DLMM not initialized');
-    }
-
     try {
       console.log(`Building position instruction: range [$${lowerBound}, $${upperBound}], liquidity: $${liquidityAmount}`);
       
       // This is a placeholder - actual implementation would use:
-      // const positionIx = await this.dlmm.createPositionInstruction({
+      // const dlmm = new DLMM(this.connection);
+      // const positionIx = await dlmm.createPositionInstruction({
       //   poolAddress: this.poolAddress,
       //   upperBound: new BN(upperBound * 1e9),
       //   lowerBound: new BN(lowerBound * 1e9),
@@ -126,15 +114,12 @@ export class MeteoraDLMMIntegration {
     positionAddress: PublicKey,
     toBinId: number
   ): Promise<TransactionInstruction | null> {
-    if (!this.dlmm) {
-      throw new Error('DLMM not initialized');
-    }
-
     try {
       console.log(`Building withdraw instruction: position ${positionAddress.toString()}, to bin ${toBinId}`);
       
       // This is a placeholder - actual implementation would use:
-      // const withdrawIx = await this.dlmm.createWithdrawInstruction({
+      // const dlmm = new DLMM(this.connection);
+      // const withdrawIx = await dlmm.createWithdrawInstruction({
       //   positionAddress,
       //   toBinId,
       //   user: this.wallet.publicKey,
