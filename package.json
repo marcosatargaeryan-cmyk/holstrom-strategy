@@ -1,0 +1,44 @@
+{
+  "name": "holstrom-strategy",
+  "version": "1.0.0",
+  "description": "Holstrom CLMM strategy testing with Surfpool",
+  "main": "dist/index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "node dist/tests/holstromTest.js",
+    "test:ts": "ts-node tests/holstromTest.ts",
+    "run:strategy": "ts-node src/runHolstromSimple.ts",
+    "rust:test": "cargo test",
+    "rust:run": "cargo run"
+  },
+  "keywords": [
+    "solana",
+    "surfpool",
+    "clmm",
+    "defi",
+    "strategy"
+  ],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@meteora-ag/dlmm": "^1.9.14",
+    "@orca-so/whirlpools-sdk": "^0.22.0",
+    "@solana/spl-memo": "^0.2.5",
+    "@solana/spl-token": "^0.4.15",
+    "@solana/web3.js": "^1.98.4",
+    "@texture-finance/solana-flash-loan-sdk": "^0.0.6",
+    "bn.js": "^5.2.5",
+    "decimal.js": "^10.6.0"
+  },
+  "devDependencies": {
+    "@solana/surfpool": "^1.5.0",
+    "@types/bn.js": "^5.2.0",
+    "@types/node": "^22.20.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  }
+}
