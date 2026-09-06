@@ -11,6 +11,7 @@
     "test": "node dist/tests/holstromTest.js",
     "test:ts": "ts-node tests/holstromTest.ts",
     "run:strategy": "ts-node src/runHolstromSimple.ts",
+    "run:real": "ts-node src/runHolstromReal.ts",
     "rust:test": "cargo test",
     "rust:run": "cargo run"
   },
