@@ -19,6 +19,7 @@
     "run:final-real": "ts-node src/runHolstromFinalReal.ts",
     "run:holstrom-real": "ts-node src/runHolstromRealStrategy.ts",
     "run:atomic": "ts-node src/runHolstromAtomic.ts",
+    "test:meteora": "ts-node src/testMeteoraIntegration.ts",
     "rust:test": "cargo test",
     "rust:run": "cargo run"
   },
