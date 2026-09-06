@@ -284,6 +284,9 @@ class HolstromAtomicStrategy {
       transaction.recentBlockhash = blockhash;
       transaction.feePayer = this.wallet.publicKey;
       
+      this.log(`Fee payer: ${this.wallet.publicKey.toString()}`);
+      this.log(`Instructions count: ${transaction.instructions.length}`);
+      
       // Calculate transaction size
       const serialized = transaction.serialize();
       const txSize = serialized.length;
@@ -299,9 +302,18 @@ class HolstromAtomicStrategy {
       this.log('✓ Transaction size acceptable for atomic execution');
       
       // Sign transaction BEFORE serialization
+      this.log('Signing transaction...');
       transaction.sign(this.wallet);
+      this.log('Transaction signed successfully');
+      
+      // Verify signature
+      if (!transaction.signature) {
+        throw new Error('Transaction signature is missing after signing');
+      }
+      this.log(`Signature present: ${transaction.signature.toString().substring(0, 20)}...`);
       
       // Send transaction
+      this.log('Sending transaction...');
       const signature = await this.connection.sendRawTransaction(transaction.serialize());
       
       this.log(`Transaction sent: ${signature}`);
