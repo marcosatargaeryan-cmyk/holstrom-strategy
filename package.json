@@ -13,6 +13,7 @@
     "run:strategy": "ts-node src/runHolstromSimple.ts",
     "run:real": "ts-node src/runHolstromReal.ts",
     "run:actual": "ts-node src/runHolstromActual.ts",
+    "run:tx": "ts-node src/runHolstromRealTx.ts",
     "rust:test": "cargo test",
     "rust:run": "cargo run"
   },
@@ -28,6 +29,7 @@
   "type": "commonjs",
   "dependencies": {
     "@meteora-ag/dlmm": "^1.9.14",
+    "@orca-so/common-sdk": "^0.7.1",
     "@orca-so/whirlpools-sdk": "^0.22.0",
     "@project-serum/anchor": "^0.26.0",
     "@solana/spl-memo": "^0.2.5",

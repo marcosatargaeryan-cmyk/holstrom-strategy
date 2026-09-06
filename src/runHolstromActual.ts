@@ -1,10 +1,12 @@
-import { Connection, PublicKey, Keypair, Transaction, SystemProgram, LAMPORTS_PER_SOL } from '@solana/web3.js';
+import { Connection, PublicKey, Keypair, Transaction, SystemProgram, LAMPORTS_PER_SOL, TransactionInstruction } from '@solana/web3.js';
+import { WhirlpoolContext, ORCA_WHIRLPOOL_PROGRAM_ID, WhirlpoolIx, PDAUtil } from '@orca-so/whirlpools-sdk';
+import { NATIVE_MINT } from '@orca-so/common-sdk';
 
 // Configuration based on strategy specification
 const CONFIG = {
-  // Pool addresses (mainnet addresses that should exist in the fork)
-  poolA: new PublicKey('5rCf1DM8LjKTw4YqhnoLcngyZYeNnQqztScTogYHAS6'), // Meteora DLMM
-  poolB: new PublicKey('Czfq3xZZDmsdGdUyrNLtRhGc47cXcZtLG4crryfu44zE'), // Orca CLMM
+  // Pool addresses (real mainnet addresses)
+  poolA: new PublicKey('BGm1tav58oGcsQJehL9WXBFXF7D27vZsKefj4xJKD5Y'), // Meteora DLMM SOL/USDC (TVL $3.83M)
+  poolB: new PublicKey('7qbRF6YsyGuLUVs6Y1q64bdVrfe4ZcUUz1JRdoVNUJnm'), // Orca Whirlpool SOL/USDC
   
   // Token mints
   solMint: new PublicKey('So11111111111111111111111111111111111111112'),
