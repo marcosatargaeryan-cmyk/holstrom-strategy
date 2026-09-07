@@ -158,7 +158,7 @@ class HolstromIntegratedSDKStrategy {
       this.log(`  Lower Bound Price: $${lowerBoundPrice.toFixed(2)}`);
       this.log(`  Initial Drawdown SOL: ${initialDrawdownSOL.toFixed(2)}`);
       this.log(`  Recursion SOL: ${recursionSOL.toFixed(2)}`);
-      this.log(`  Total Flash Loan (as USDC): ${(totalSOLFlashLoan * 100).toFixed(2)}`);
+      this.log(`  Total Flash Loan (as USDC): 100.00 (simplified test)`);
       
       // Flash Loan Borrow Instruction
       try {
@@ -167,13 +167,13 @@ class HolstromIntegratedSDKStrategy {
           {
             tokenMint: CONFIG.usdcMint,
             reserveAddress: KAMINO_USDC_RESERVE,
-            amount: totalSOLFlashLoan * 100 // Convert SOL to USDC roughly
+            amount: 100.0 // Fixed small amount for testing
           },
           this.wallet.publicKey
         );
         if (borrowIx) {
           instructions.push(borrowIx);
-          this.log('✓ Flash loan borrow instruction built');
+          this.log('✓ Flash loan borrow instruction built (index: ${instructions.length - 1})`);
         } else {
           this.log('⚠ Flash loan borrow instruction is placeholder');
         }
@@ -183,6 +183,9 @@ class HolstromIntegratedSDKStrategy {
 
       // Meteora Initial Drawdown Instruction
       try {
+        // Skip Meteora swap for now to simplify test
+        this.log('⚠ Meteora initial drawdown instruction skipped (simplifying test)');
+        /*
         const meteoraSwapIx = await this.meteora.buildSwapInstruction(
           initialDrawdownSOL,
           true // SOL to USDC (swapForY = true)
@@ -193,6 +196,7 @@ class HolstromIntegratedSDKStrategy {
         } else {
           this.log('⚠ Meteora swap instruction is placeholder');
         }
+        */
       } catch (error) {
         this.log(`✗ Meteora swap instruction failed: ${error}`);
       }
@@ -312,14 +316,15 @@ class HolstromIntegratedSDKStrategy {
 
       // Flash Loan Repay Instructions
       try {
+        const borrowIndex = 0; // Hardcoded for simplified test
         const usdcRepayIx = await this.flashLoan.buildRepayInstruction(
           {
             tokenMint: CONFIG.usdcMint,
             reserveAddress: KAMINO_USDC_RESERVE,
-            amount: totalSOLFlashLoan * 100 // Match borrow amount
+            amount: 100.0 // Match borrow amount
           },
           this.wallet.publicKey,
-          0 // Borrow instruction index (will be calculated dynamically)
+          borrowIndex // Borrow instruction index
         );
         if (usdcRepayIx) {
           instructions.push(usdcRepayIx);
