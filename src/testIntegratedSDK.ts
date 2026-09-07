@@ -340,13 +340,24 @@ class HolstromIntegratedSDKStrategy {
 
       // Phase 3: Build Atomic Transaction
       this.log('\n=== Phase 3: Build Atomic Transaction ===');
-      
+
       const transaction = new Transaction();
       instructions.forEach(ix => transaction.add(ix));
-      
+
       this.log(`Total instructions: ${instructions.length}`);
       this.log(`Real instructions: ${instructions.filter(ix => ix !== null).length}`);
       this.log(`Placeholder instructions: ${instructions.filter(ix => ix === null).length}`);
+
+      // Add recent blockhash
+      try {
+        const { blockhash } = await this.connection.getLatestBlockhash();
+        transaction.recentBlockhash = blockhash;
+        transaction.feePayer = this.wallet.publicKey;
+        this.log('✓ Added recent blockhash to transaction');
+      } catch (error) {
+        this.log(`✗ Failed to get blockhash: ${error}`);
+        throw new Error('Transaction recentBlockhash required');
+      }
 
       // Check transaction size
       const serialized = transaction.serialize();
