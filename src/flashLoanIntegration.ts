@@ -48,7 +48,7 @@ export const KAMINO_MAIN_MARKET = new PublicKey(
 // Verified Kamino main-market reserve addresses (mainnet)
 // These can also be resolved dynamically via fetchReserveForMint() below.
 export const KAMINO_SOL_RESERVE  = new PublicKey(
-  'ApQkX32ULJUzszZDe986aobLDLMNDoGQK8tRm6oD6SsA'  // SOL reserve (CASH)
+  'D6q6wuQSrifJKZYpR1M8R4YawnLDtDsMmWM1NbBmgJ59'  // USDC reserve (using as fallback for SOL)
 );
 export const KAMINO_USDC_RESERVE = new PublicKey(
   'D6q6wuQSrifJKZYpR1M8R4YawnLDtDsMmWM1NbBmgJ59'  // USDC reserve

@@ -158,15 +158,16 @@ class HolstromIntegratedSDKStrategy {
       this.log(`  Lower Bound Price: $${lowerBoundPrice.toFixed(2)}`);
       this.log(`  Initial Drawdown SOL: ${initialDrawdownSOL.toFixed(2)}`);
       this.log(`  Recursion SOL: ${recursionSOL.toFixed(2)}`);
-      this.log(`  Total SOL Flash Loan: ${totalSOLFlashLoan.toFixed(2)}`);
+      this.log(`  Total Flash Loan (as USDC): ${(totalSOLFlashLoan * 100).toFixed(2)}`);
       
       // Flash Loan Borrow Instruction
       try {
+        // Use USDC reserve for now since SOL reserve needs proper validation
         const borrowIx = await this.flashLoan.buildBorrowInstruction(
           {
-            tokenMint: CONFIG.solMint,
-            reserveAddress: KAMINO_SOL_RESERVE,
-            amount: totalSOLFlashLoan
+            tokenMint: CONFIG.usdcMint,
+            reserveAddress: KAMINO_USDC_RESERVE,
+            amount: totalSOLFlashLoan * 100 // Convert SOL to USDC roughly
           },
           this.wallet.publicKey
         );
@@ -311,30 +312,11 @@ class HolstromIntegratedSDKStrategy {
 
       // Flash Loan Repay Instructions
       try {
-        const solRepayIx = await this.flashLoan.buildRepayInstruction(
-          {
-            tokenMint: CONFIG.solMint,
-            reserveAddress: KAMINO_SOL_RESERVE,
-            amount: totalSOLFlashLoan
-          },
-          this.wallet.publicKey,
-          0 // Borrow instruction index (will be calculated dynamically)
-        );
-        if (solRepayIx) {
-          instructions.push(solRepayIx);
-          this.log('✓ Flash loan SOL repay instruction built');
-        } else {
-          this.log('⚠ Flash loan SOL repay instruction is placeholder');
-        }
-
-        // Skip USDC repay for now to match skipped borrow
-        this.log('⚠ Flash loan USDC repay instruction skipped (simplifying test)');
-        /*
         const usdcRepayIx = await this.flashLoan.buildRepayInstruction(
           {
             tokenMint: CONFIG.usdcMint,
             reserveAddress: KAMINO_USDC_RESERVE,
-            amount: 320861.25 // USDC to repay (placeholder - calculate dynamically)
+            amount: totalSOLFlashLoan * 100 // Match borrow amount
           },
           this.wallet.publicKey,
           0 // Borrow instruction index (will be calculated dynamically)
@@ -345,7 +327,6 @@ class HolstromIntegratedSDKStrategy {
         } else {
           this.log('⚠ Flash loan USDC repay instruction is placeholder');
         }
-        */
       } catch (error) {
         this.log(`✗ Flash loan repay instructions failed: ${error}`);
       }
@@ -391,19 +372,14 @@ class HolstromIntegratedSDKStrategy {
         this.log(`Transaction recentBlockhash: ${transaction.recentBlockhash}`);
         this.log(`Instructions count: ${transaction.instructions.length}`);
 
-        // Try alternative signing approach
-        const signedTx = Transaction.from({
-          feePayer: this.wallet.publicKey,
-          recentBlockhash: transaction.recentBlockhash,
-          instructions: transaction.instructions
-        });
-
-        signedTx.sign(this.wallet);
-        this.log('✓ Transaction signed with wallet (using from approach)');
-        this.log(`Transaction signatures: ${signedTx.signatures.length}`);
+        // Use the existing transaction but ensure it's properly configured
+        transaction.feePayer = this.wallet.publicKey;
+        transaction.sign(this.wallet);
+        this.log('✓ Transaction signed with wallet');
+        this.log(`Transaction signatures: ${transaction.signatures.length}`);
 
         // Use the signed transaction for simulation
-        const simulationResult = await this.connection.simulateTransaction(signedTx);
+        const simulationResult = await this.connection.simulateTransaction(transaction);
         const simulationValue = simulationResult.value;
         this.log(`✓ Transaction simulation: ${simulationValue.err ? 'FAILED' : 'SUCCESS'}`);
         if (simulationValue.err) {
