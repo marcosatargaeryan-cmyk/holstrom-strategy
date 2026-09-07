@@ -389,7 +389,7 @@ class HolstromIntegratedSDKStrategy {
         if (simulationValue.err) {
           this.log(`  Simulation error: ${JSON.stringify(simulationValue.err)}`);
         } else {
-          this.log(`  Compute units consumed: ${simulationValue.unitsConsumuted}`);
+          this.log(`  Compute units consumed: ${simulationValue.unitsConsumed}`);
           result.atomicTransaction = true; // Only mark atomic if simulation succeeds
         }
       } catch (error) {
