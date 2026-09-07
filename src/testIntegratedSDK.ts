@@ -387,17 +387,23 @@ class HolstromIntegratedSDKStrategy {
       // Sign transaction
       try {
         this.log(`Signing transaction with wallet: ${this.wallet.publicKey.toString()}`);
-        transaction.sign(this.wallet);
-        this.log('✓ Transaction signed with wallet');
-        this.log(`Transaction signatures: ${transaction.signatures.length}`);
-      } catch (error) {
-        this.log(`✗ Failed to sign transaction: ${error}`);
-        throw new Error('Transaction signing failed');
-      }
+        this.log(`Transaction feePayer: ${transaction.feePayer?.toString()}`);
+        this.log(`Transaction recentBlockhash: ${transaction.recentBlockhash}`);
+        this.log(`Instructions count: ${transaction.instructions.length}`);
 
-      // Simulate transaction
-      try {
-        const simulationResult = await this.connection.simulateTransaction(transaction);
+        // Try alternative signing approach
+        const signedTx = Transaction.from({
+          feePayer: this.wallet.publicKey,
+          recentBlockhash: transaction.recentBlockhash,
+          instructions: transaction.instructions
+        });
+
+        signedTx.sign(this.wallet);
+        this.log('✓ Transaction signed with wallet (using from approach)');
+        this.log(`Transaction signatures: ${signedTx.signatures.length}`);
+
+        // Use the signed transaction for simulation
+        const simulationResult = await this.connection.simulateTransaction(signedTx);
         const simulationValue = simulationResult.value;
         this.log(`✓ Transaction simulation: ${simulationValue.err ? 'FAILED' : 'SUCCESS'}`);
         if (simulationValue.err) {
@@ -406,8 +412,10 @@ class HolstromIntegratedSDKStrategy {
           this.log(`  Compute units consumed: ${simulationValue.unitsConsumed}`);
           result.atomicTransaction = true; // Only mark atomic if simulation succeeds
         }
+        return result; // Return early after simulation
       } catch (error) {
-        this.log(`⚠ Transaction simulation failed: ${error}`);
+        this.log(`✗ Failed to sign/simulate transaction: ${error}`);
+        throw new Error('Transaction signing/simulation failed');
       }
 
       this.log('\n=== Integrated SDK Test Results ===');
