@@ -37,6 +37,7 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@jup-ag/lend": "^0.2.0",
     "@meteora-ag/dlmm": "^1.9.14",
     "@orca-so/common-sdk": "^0.7.1",
     "@orca-so/whirlpools-sdk": "^0.22.0",
@@ -44,7 +45,6 @@
     "@solana/spl-memo": "^0.2.5",
     "@solana/spl-token": "^0.4.15",
     "@solana/web3.js": "^1.98.4",
-    "@texture-finance/solana-flash-loan-sdk": "^0.0.6",
     "bn.js": "^5.2.5",
     "decimal.js": "^10.6.0"
   },

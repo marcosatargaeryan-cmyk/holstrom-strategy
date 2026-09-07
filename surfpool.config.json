@@ -1,0 +1,45 @@
+{
+  "surfnet": {
+    "logLevel": "info",
+    "port": 8899,
+    "faucetSol": 1000000,
+    "faucetUsdc": 1000000
+  },
+  "accounts": {
+    "orcaWhirlpoolProgram": "whirLbMiicVdio4qvUfBX5VXncFARKC9hVXzP3aWFcQs",
+    "tokenMints": {
+      "WSOL": "So11111111111111111111111111111111111111112",
+      "USDC": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
+    },
+    "poolA": {
+      "address": "REPLACE_WITH_POOL_A_ADDRESS",
+      "vaultA": "REPLACE_WITH_POOL_A_VAULT_A",
+      "vaultB": "REPLACE_WITH_POOL_A_VAULT_B",
+      "tickArrays": [
+        "REPLACE_WITH_TICK_ARRAY_1",
+        "REPLACE_WITH_TICK_ARRAY_2",
+        "REPLACE_WITH_TICK_ARRAY_3"
+      ],
+      "feeAuthority": "REPLACE_WITH_FEE_AUTHORITY"
+    },
+    "poolB": {
+      "address": "REPLACE_WITH_POOL_B_ADDRESS",
+      "vaultA": "REPLACE_WITH_POOL_B_VAULT_A",
+      "vaultB": "REPLACE_WITH_POOL_B_VAULT_B",
+      "tickArrays": [
+        "REPLACE_WITH_TICK_ARRAY_1",
+        "REPLACE_WITH_TICK_ARRAY_2",
+        "REPLACE_WITH_TICK_ARRAY_3"
+      ],
+      "feeAuthority": "REPLACE_WITH_FEE_AUTHORITY"
+    }
+  },
+  "strategy": {
+    "initialPrice": 95.831125,
+    "targetDrawdownPrice": 67.0818,
+    "clmmLowerBound": 66.0818,
+    "flashLoanAmount": 6211.1,
+    "recursiveLoanAmount": 1000,
+    "buybackLoanAmount": 497833.5
+  }
+}

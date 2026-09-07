@@ -1,7 +1,7 @@
 import { Connection, Keypair, PublicKey, Transaction, TransactionInstruction } from '@solana/web3.js';
 import { MeteoraDLMMIntegration } from './meteoraIntegration';
 import { OrcaWhirlpoolIntegration } from './orcaIntegration';
-import { FlashLoanIntegration } from './flashLoanIntegration';
+import { KaminoFlashLoanIntegration, KAMINO_SOL_RESERVE, KAMINO_USDC_RESERVE } from './flashLoanIntegration';
 
 const CONFIG = {
   // Pool addresses (real mainnet addresses)
@@ -29,16 +29,16 @@ class HolstromIntegratedSDKStrategy {
   private wallet: Keypair;
   private meteora: MeteoraDLMMIntegration;
   private orca: OrcaWhirlpoolIntegration;
-  private flashLoan: FlashLoanIntegration;
+  private flashLoan: KaminoFlashLoanIntegration;
   private logs: string[] = [];
 
   constructor(connection: Connection, wallet: Keypair) {
     this.connection = connection;
     this.wallet = wallet;
-    
+
     this.meteora = new MeteoraDLMMIntegration(connection, wallet, CONFIG.poolA);
     this.orca = new OrcaWhirlpoolIntegration(connection, wallet, CONFIG.poolB);
-    this.flashLoan = new FlashLoanIntegration(connection, wallet); // Placeholder mode
+    this.flashLoan = new KaminoFlashLoanIntegration(connection, wallet);
   }
 
   async executeIntegratedTest(): Promise<IntegrationTestResult> {
@@ -91,11 +91,51 @@ class HolstromIntegratedSDKStrategy {
       
       const instructions: TransactionInstruction[] = [];
 
+      // Dynamic calculation from pool state
+      this.log('\n=== Dynamic Amount Calculation ===');
+      
+      // Get current pool states
+      const poolAPrice = await this.meteora.getPoolPrice();
+      const poolBPrice = await this.orca.getPoolPrice();
+      
+      this.log(`Current Pool A Price: $${poolAPrice}`);
+      this.log(`Current Pool B Price: $${poolBPrice}`);
+      
+      // Calculate dynamic amounts based on current state
+      const drawdownTargetPrice = poolAPrice * 0.70; // 30% drawdown
+      const lowerBoundPrice = drawdownTargetPrice * 0.986; // Lower bound
+      const upperBoundPrice = drawdownTargetPrice; // Upper bound
+      
+      // Calculate SOL needed for initial drawdown
+      const initialDrawdownSOL = await this.meteora.calculateRequiredSOLForPriceMovement(
+        poolAPrice,
+        drawdownTargetPrice
+      );
+      
+      // Calculate SOL needed for recursion to reach lower bound
+      const recursionSOL = await this.meteora.calculateRequiredSOLForPriceMovement(
+        upperBoundPrice,
+        lowerBoundPrice
+      );
+      
+      // Total SOL flash loan needed
+      const totalSOLFlashLoan = initialDrawdownSOL + recursionSOL + 100; // Add buffer
+      
+      this.log(`Dynamic Calculations:`);
+      this.log(`  Drawdown Target Price: $${drawdownTargetPrice.toFixed(2)}`);
+      this.log(`  Lower Bound Price: $${lowerBoundPrice.toFixed(2)}`);
+      this.log(`  Initial Drawdown SOL: ${initialDrawdownSOL.toFixed(2)}`);
+      this.log(`  Recursion SOL: ${recursionSOL.toFixed(2)}`);
+      this.log(`  Total SOL Flash Loan: ${totalSOLFlashLoan.toFixed(2)}`);
+      
       // Flash Loan Borrow Instruction
       try {
         const borrowIx = await this.flashLoan.buildBorrowInstruction(
-          CONFIG.solMint,
-          3311.55, // Total SOL needed
+          {
+            tokenMint: CONFIG.solMint,
+            reserveAddress: KAMINO_SOL_RESERVE,
+            amount: totalSOLFlashLoan
+          },
           this.wallet.publicKey
         );
         if (borrowIx) {
@@ -111,9 +151,8 @@ class HolstromIntegratedSDKStrategy {
       // Meteora Initial Drawdown Instruction
       try {
         const meteoraSwapIx = await this.meteora.buildSwapInstruction(
-          3105.55, // Initial drawdown SOL
-          CONFIG.solMint,
-          CONFIG.usdcMint
+          initialDrawdownSOL,
+          true // SOL to USDC (swapForY = true)
         );
         if (meteoraSwapIx) {
           instructions.push(meteoraSwapIx);
@@ -128,8 +167,8 @@ class HolstromIntegratedSDKStrategy {
       // Meteora Position Instruction
       try {
         const positionIx = await this.meteora.buildPositionInstruction(
-          72.35, // Upper bound
-          71.35, // Lower bound
+          upperBoundPrice,
+          lowerBoundPrice,
           250000.0 // USDC amount
         );
         if (positionIx) {
@@ -145,9 +184,8 @@ class HolstromIntegratedSDKStrategy {
       // Recursion: Meteora Swap + Orca Swap
       try {
         const meteoraRecursionIx = await this.meteora.buildSwapInstruction(
-          206.0, // Recursion SOL
-          CONFIG.solMint,
-          CONFIG.usdcMint
+          recursionSOL,
+          true // SOL to USDC (swapForY = true)
         );
         if (meteoraRecursionIx) {
           instructions.push(meteoraRecursionIx);
@@ -157,9 +195,8 @@ class HolstromIntegratedSDKStrategy {
         }
 
         const orcaRecursionIx = await this.orca.buildSwapInstruction(
-          206.0, // Recursion SOL
-          CONFIG.usdcMint,
-          CONFIG.solMint
+          recursionSOL,
+          false // USDC to SOL (false = tokenB to tokenA)
         );
         if (orcaRecursionIx) {
           instructions.push(orcaRecursionIx);
@@ -173,25 +210,21 @@ class HolstromIntegratedSDKStrategy {
 
       // Meteora Withdraw Instruction
       try {
-        const withdrawIx = await this.meteora.buildWithdrawInstruction(
-          this.wallet.publicKey, // Position address (placeholder)
-          71.35 // To bin ID
-        );
-        if (withdrawIx) {
-          instructions.push(withdrawIx);
-          this.log('✓ Meteora withdraw instruction built');
-        } else {
-          this.log('⚠ Meteora withdraw instruction is placeholder');
-        }
+        // Note: Withdraw requires PositionResult from position creation
+        // This is skipped for now as position creation needs to be integrated
+        this.log('⚠ Meteora withdraw instruction skipped (requires PositionResult from position creation)');
       } catch (error) {
         this.log(`✗ Meteora withdraw instruction failed: ${error}`);
       }
 
-      // Flash Loan USDC Borrow
+      // Flash Loan USDC Borrow (will be calculated dynamically in production)
       try {
         const usdcBorrowIx = await this.flashLoan.buildBorrowInstruction(
-          CONFIG.usdcMint,
-          320861.25, // Buyback USDC
+          {
+            tokenMint: CONFIG.usdcMint,
+            reserveAddress: KAMINO_USDC_RESERVE,
+            amount: 320861.25 // Buyback USDC (placeholder - calculate dynamically)
+          },
           this.wallet.publicKey
         );
         if (usdcBorrowIx) {
@@ -207,9 +240,8 @@ class HolstromIntegratedSDKStrategy {
       // Meteora Buyback Instruction
       try {
         const buybackIx = await this.meteora.buildSwapInstruction(
-          2381.14, // Buyback SOL
-          CONFIG.usdcMint,
-          CONFIG.solMint
+          2381.14, // Buyback SOL (placeholder - calculate dynamically)
+          false // USDC to SOL (swapForY = false)
         );
         if (buybackIx) {
           instructions.push(buybackIx);
@@ -224,9 +256,8 @@ class HolstromIntegratedSDKStrategy {
       // Orca Final Sale Instruction
       try {
         const finalSaleIx = await this.orca.buildSwapInstruction(
-          1000.0, // Final sale SOL
-          CONFIG.solMint,
-          CONFIG.usdcMint
+          1000.0, // Final sale SOL (placeholder - calculate dynamically)
+          true // SOL to USDC (true = tokenA to tokenB)
         );
         if (finalSaleIx) {
           instructions.push(finalSaleIx);
@@ -241,9 +272,13 @@ class HolstromIntegratedSDKStrategy {
       // Flash Loan Repay Instructions
       try {
         const solRepayIx = await this.flashLoan.buildRepayInstruction(
-          CONFIG.solMint,
-          3311.55, // SOL to repay
-          this.wallet.publicKey
+          {
+            tokenMint: CONFIG.solMint,
+            reserveAddress: KAMINO_SOL_RESERVE,
+            amount: totalSOLFlashLoan
+          },
+          this.wallet.publicKey,
+          0 // Borrow instruction index (will be calculated dynamically)
         );
         if (solRepayIx) {
           instructions.push(solRepayIx);
@@ -253,9 +288,13 @@ class HolstromIntegratedSDKStrategy {
         }
 
         const usdcRepayIx = await this.flashLoan.buildRepayInstruction(
-          CONFIG.usdcMint,
-          320861.25, // USDC to repay
-          this.wallet.publicKey
+          {
+            tokenMint: CONFIG.usdcMint,
+            reserveAddress: KAMINO_USDC_RESERVE,
+            amount: 320861.25 // USDC to repay (placeholder - calculate dynamically)
+          },
+          this.wallet.publicKey,
+          0 // Borrow instruction index (will be calculated dynamically)
         );
         if (usdcRepayIx) {
           instructions.push(usdcRepayIx);
