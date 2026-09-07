@@ -363,20 +363,44 @@ class HolstromIntegratedSDKStrategy {
       const serialized = transaction.serialize();
       const txSize = serialized.length;
       this.log(`Transaction size: ${txSize} bytes`);
-      
+
       if (txSize > 1232) {
         this.log(`⚠️  TRANSACTION TOO LARGE: ${txSize} bytes (max 1232 bytes)`);
         this.log('Strategy requires splitting into multiple transactions or custom program');
+        return result; // Return early - no point signing/simulating
       } else {
         this.log('✓ Transaction size acceptable for atomic execution');
-        result.atomicTransaction = true;
+      }
+
+      // Sign transaction
+      try {
+        transaction.sign(this.wallet);
+        this.log('✓ Transaction signed with wallet');
+      } catch (error) {
+        this.log(`✗ Failed to sign transaction: ${error}`);
+        throw new Error('Transaction signing failed');
+      }
+
+      // Simulate transaction
+      try {
+        const simulationResult = await this.connection.simulateTransaction(transaction);
+        const simulationValue = simulationResult.value;
+        this.log(`✓ Transaction simulation: ${simulationValue.err ? 'FAILED' : 'SUCCESS'}`);
+        if (simulationValue.err) {
+          this.log(`  Simulation error: ${JSON.stringify(simulationValue.err)}`);
+        } else {
+          this.log(`  Compute units consumed: ${simulationValue.unitsConsumuted}`);
+          result.atomicTransaction = true; // Only mark atomic if simulation succeeds
+        }
+      } catch (error) {
+        this.log(`⚠ Transaction simulation failed: ${error}`);
       }
 
       this.log('\n=== Integrated SDK Test Results ===');
       this.log(`Meteora SDK: ${result.meteora ? '✓ Initialized' : '✗ Failed'}`);
       this.log(`Orca SDK: ${result.orca ? '✓ Initialized' : '✗ Failed'}`);
       this.log(`Flash Loan SDK: ${result.flashLoan ? '✓ Initialized' : '✗ Failed'}`);
-      this.log(`Atomic Transaction: ${result.atomicTransaction ? '✓ Possible' : '✗ Too large'}`);
+      this.log(`Atomic Transaction: ${result.atomicTransaction ? '✓ Simulation successful' : '✗ Simulation failed or too large'}`);
       
       if (result.errors.length > 0) {
         this.log(`\nErrors encountered: ${result.errors.length}`);
