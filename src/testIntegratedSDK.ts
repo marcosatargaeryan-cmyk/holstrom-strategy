@@ -266,7 +266,8 @@ class HolstromIntegratedSDKStrategy {
 
       // Add recent blockhash
       try {
-        const { blockhash } = await this.connection.getLatestBlockhash();
+        const { blockhash } = await this.connection.getLatestBlockhash('finalized');
+        this.log(`Got blockhash: ${blockhash}`);
         transaction.recentBlockhash = blockhash;
         transaction.feePayer = this.wallet.publicKey;
         this.log('✓ Added recent blockhash to transaction');
