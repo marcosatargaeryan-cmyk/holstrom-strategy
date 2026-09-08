@@ -319,6 +319,17 @@ class HolstromIntegratedSDKStrategy {
         this.log(`✓ Transaction reconstruction successful`);
         this.log(`Reconstructed feePayer: ${reconstructed.feePayer?.toString()}`);
 
+        // Try direct RPC call to see if the issue is with simulation
+        this.log('Attempting to send transaction to RPC...');
+        try {
+          const rpcResult = await this.connection.sendTransaction(transaction);
+          this.log(`✓ Transaction sent to RPC: ${rpcResult}`);
+          return result;
+        } catch (rpcError) {
+          this.log(`⚠ RPC send failed: ${rpcError}`);
+          // Fall back to simulation
+        }
+
         // Use the signed transaction for simulation
         const simulationResult = await this.connection.simulateTransaction(transaction);
         const simulationValue = simulationResult.value;
