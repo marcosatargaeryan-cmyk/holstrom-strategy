@@ -266,7 +266,7 @@ class HolstromIntegratedSDKStrategy {
 
       // Add recent blockhash
       try {
-        // Use Surfpool's blockhash as-is and try simulation with skipSigVerify
+        // Use Surfpool's blockhash as-is
         const { blockhash } = await this.connection.getLatestBlockhash();
         transaction.recentBlockhash = blockhash;
         transaction.feePayer = this.wallet.publicKey;
@@ -313,6 +313,12 @@ class HolstromIntegratedSDKStrategy {
           throw new Error('Transaction signature is empty');
         }
 
+        // Inspect the signature
+        const signature = transaction.signatures[0];
+        this.log(`Signature public key: ${signature.publicKey.toString()}`);
+        this.log(`Signature bytes length: ${signature.signature?.length || 0}`);
+        this.log(`Signature is null: ${signature.signature === null}`);
+
         // Serialize to verify transaction is valid
         const serialized = transaction.serialize();
         this.log(`Transaction serialized length: ${serialized.length} bytes`);
@@ -334,13 +340,10 @@ class HolstromIntegratedSDKStrategy {
         }
 
         // Use the signed transaction for simulation
-        // Try with skipSigVerify to bypass signature verification for testing
-        this.log('Attempting simulation with skipSigVerify...');
-        const simulationResult = await this.connection.simulateTransaction(transaction, {
-          skipSigVerify: true
-        });
+        this.log('Attempting simulation...');
+        const simulationResult = await this.connection.simulateTransaction(transaction);
         const simulationValue = simulationResult.value;
-        this.log(`✓ Transaction simulation (skipSigVerify): ${simulationValue.err ? 'FAILED' : 'SUCCESS'}`);
+        this.log(`✓ Transaction simulation: ${simulationValue.err ? 'FAILED' : 'SUCCESS'}`);
         if (simulationValue.err) {
           this.log(`  Simulation error: ${JSON.stringify(simulationValue.err)}`);
         } else {
