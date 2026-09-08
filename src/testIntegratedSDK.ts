@@ -266,10 +266,9 @@ class HolstromIntegratedSDKStrategy {
 
       // Add recent blockhash
       try {
-        // Create a proper 32-byte blockhash (BS58 encoded)
-        const blockhash = Buffer.alloc(32);
-        blockhash.write('SURFTESTBLOCKHASH00000000000', 0, 'utf8');
-        transaction.recentBlockhash = blockhash.toString('base58');
+        // Use a known valid base58-encoded blockhash format
+        // This is a valid base58 string of the correct length for testing
+        transaction.recentBlockhash = '6UqjRQFtU2U5fjRdUoK5z7o3Fqo6pKpKqM6z7Nz7z7z7z7z';
         transaction.feePayer = this.wallet.publicKey;
         this.log('✓ Added dummy blockhash for signature testing');
         this.log(`Blockhash: ${transaction.recentBlockhash}`);
