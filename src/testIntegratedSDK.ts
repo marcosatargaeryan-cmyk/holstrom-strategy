@@ -162,6 +162,10 @@ class HolstromIntegratedSDKStrategy {
       
       // Flash Loan Borrow Instruction
       try {
+        // Ensure wallet has ATA for USDC
+        const usdcAta = await this.flashLoan.ensureTokenAccount(CONFIG.usdcMint);
+        this.log(`USDC ATA: ${usdcAta.toString()}`);
+
         // Use USDC reserve for now since SOL reserve needs proper validation
         const borrowIx = await this.flashLoan.buildBorrowInstruction(
           {
@@ -169,7 +173,7 @@ class HolstromIntegratedSDKStrategy {
             reserveAddress: KAMINO_USDC_RESERVE,
             amount: 100.0 // Fixed small amount for testing
           },
-          this.wallet.publicKey
+          usdcAta // Pass ATA instead of wallet public key
         );
         if (borrowIx) {
           instructions.push(borrowIx);
@@ -204,15 +208,20 @@ class HolstromIntegratedSDKStrategy {
 
       // Flash Loan Repay Instructions
       try {
-        const borrowIndex = 0; // Borrow is at index 0
+        const borrowIndex = 0; // Borrow is first instruction (index 0)
         this.log(`Borrow instruction index: ${borrowIndex}`);
+
+        // Get the USDC ATA for repay
+        const usdcAta = await this.flashLoan.ensureTokenAccount(CONFIG.usdcMint);
+        this.log(`USDC ATA for repay: ${usdcAta.toString()}`);
+
         const usdcRepayIx = await this.flashLoan.buildRepayInstruction(
           {
             tokenMint: CONFIG.usdcMint,
             reserveAddress: KAMINO_USDC_RESERVE,
             amount: 100.0 // Match borrow amount
           },
-          this.wallet.publicKey,
+          usdcAta, // Pass ATA instead of wallet public key
           borrowIndex // Borrow instruction index
         );
         if (usdcRepayIx) {
