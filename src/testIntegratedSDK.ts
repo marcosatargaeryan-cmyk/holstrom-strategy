@@ -173,7 +173,7 @@ class HolstromIntegratedSDKStrategy {
         );
         if (borrowIx) {
           instructions.push(borrowIx);
-          this.log('✓ Flash loan borrow instruction built (index: ${instructions.length - 1})`);
+          this.log('✓ Flash loan borrow instruction built');
         } else {
           this.log('⚠ Flash loan borrow instruction is placeholder');
         }
