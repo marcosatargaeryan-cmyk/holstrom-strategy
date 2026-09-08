@@ -277,16 +277,20 @@ class HolstromIntegratedSDKStrategy {
         this.log(`Transaction recentBlockhash: ${transaction.recentBlockhash}`);
         this.log(`Instructions count: ${transaction.instructions.length}`);
 
-        // Sign the existing transaction directly
+        // Clear any existing signatures and sign fresh
+        transaction.signatures = [];
         transaction.sign(this.wallet);
         this.log('✓ Transaction signed with wallet');
         this.log(`Transaction signatures: ${transaction.signatures.length}`);
-        this.log(`Signatures: ${transaction.signatures.map(s => s.toString())}`);
 
         // Verify signature is present
         if (transaction.signatures.length === 0) {
           throw new Error('Transaction signature is empty');
         }
+
+        // Serialize to verify transaction is valid
+        const serialized = transaction.serialize();
+        this.log(`Transaction serialized length: ${serialized.length} bytes`);
 
         // Use the signed transaction for simulation
         const simulationResult = await this.connection.simulateTransaction(transaction);
