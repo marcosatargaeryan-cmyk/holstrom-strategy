@@ -266,8 +266,23 @@ class HolstromIntegratedSDKStrategy {
 
       // Add recent blockhash
       try {
-        const { blockhash } = await this.connection.getLatestBlockhash('finalized');
-        this.log(`Got blockhash: ${blockhash}`);
+        // Surfpool might return placeholder blockhashes, try multiple methods
+        let blockhash;
+        try {
+          const { blockhash: bh } = await this.connection.getLatestBlockhash('finalized');
+          blockhash = bh;
+          this.log(`Got finalized blockhash: ${blockhash}`);
+        } catch (e) {
+          try {
+            const { blockhash: bh } = await this.connection.getLatestBlockhash('confirmed');
+            blockhash = bh;
+            this.log(`Got confirmed blockhash: ${blockhash}`);
+          } catch (e2) {
+            const { blockhash: bh } = await this.connection.getLatestBlockhash();
+            blockhash = bh;
+            this.log(`Got default blockhash: ${blockhash}`);
+          }
+        }
         transaction.recentBlockhash = blockhash;
         transaction.feePayer = this.wallet.publicKey;
         this.log('✓ Added recent blockhash to transaction');
