@@ -270,6 +270,7 @@ class HolstromIntegratedSDKStrategy {
         transaction.recentBlockhash = blockhash;
         transaction.feePayer = this.wallet.publicKey;
         this.log('✓ Added recent blockhash to transaction');
+        this.log(`Blockhash: ${blockhash}`);
       } catch (error) {
         this.log(`✗ Failed to get blockhash: ${error}`);
         throw new Error('Transaction recentBlockhash required');
@@ -304,6 +305,7 @@ class HolstromIntegratedSDKStrategy {
         transaction.sign(this.wallet);
         this.log('✓ Transaction signed with wallet');
         this.log(`Transaction signatures: ${transaction.signatures.length}`);
+        this.log(`Blockhash after signing: ${transaction.recentBlockhash}`);
 
         // Verify signature is present
         if (transaction.signatures.length === 0) {
