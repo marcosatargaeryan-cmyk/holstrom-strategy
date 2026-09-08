@@ -295,6 +295,10 @@ class HolstromIntegratedSDKStrategy {
         this.log(`Transaction recentBlockhash: ${transaction.recentBlockhash}`);
         this.log(`Instructions count: ${transaction.instructions.length}`);
 
+        // Check wallet balance
+        const balance = await this.connection.getBalance(this.wallet.publicKey);
+        this.log(`Wallet balance: ${balance.value} lamports`);
+
         // Clear any existing signatures and sign fresh
         transaction.signatures = [];
         transaction.sign(this.wallet);
