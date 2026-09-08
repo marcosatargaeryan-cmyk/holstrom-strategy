@@ -284,7 +284,7 @@ class HolstromIntegratedSDKStrategy {
         this.log(`Signatures: ${transaction.signatures.map(s => s.toString())}`);
 
         // Verify signature is present
-        if (transaction.signatures.length === 0 || transaction.signatures[0].length === 0) {
+        if (transaction.signatures.length === 0) {
           throw new Error('Transaction signature is empty');
         }
 
