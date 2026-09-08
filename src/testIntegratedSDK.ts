@@ -271,9 +271,9 @@ class HolstromIntegratedSDKStrategy {
         try {
           const slot = await this.connection.getSlot();
           this.log(`Current slot: ${slot}`);
-          const { blockhash: bh } = await this.connection.getRecentBlockhash(slot);
+          const { blockhash: bh } = await this.connection.getRecentBlockhash('finalized');
           blockhash = bh;
-          this.log(`Got blockhash from slot ${slot}: ${blockhash}`);
+          this.log(`Got finalized blockhash: ${blockhash}`);
         } catch (e) {
           // Fallback to standard methods
           try {
