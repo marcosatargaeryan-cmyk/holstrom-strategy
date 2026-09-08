@@ -266,13 +266,13 @@ class HolstromIntegratedSDKStrategy {
 
       // Add recent blockhash
       try {
-        // Skip Surfpool blockhash issue and try to test signature with simulation
-        // If this works, the issue is the blockhash; if not, it's the signature itself
-        this.log('Skipping blockhash fetch (Surfpool returns placeholders)');
-        this.log('Setting a dummy blockhash for signature testing');
-        transaction.recentBlockhash = 'AAAAAA' + 'x'.repeat(30); // Dummy 32-byte blockhash
+        // Create a proper 32-byte blockhash (BS58 encoded)
+        const blockhash = Buffer.alloc(32);
+        blockhash.write('SURFTESTBLOCKHASH00000000000', 0, 'utf8');
+        transaction.recentBlockhash = blockhash.toString('base58');
         transaction.feePayer = this.wallet.publicKey;
         this.log('✓ Added dummy blockhash for signature testing');
+        this.log(`Blockhash: ${transaction.recentBlockhash}`);
       } catch (error) {
         this.log(`✗ Failed to set blockhash: ${error}`);
         throw new Error('Transaction recentBlockhash required');
