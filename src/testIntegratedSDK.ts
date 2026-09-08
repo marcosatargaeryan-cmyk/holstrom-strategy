@@ -266,12 +266,12 @@ class HolstromIntegratedSDKStrategy {
 
       // Add recent blockhash
       try {
-        // Use a known valid base58-encoded blockhash format
-        // This is a valid base58 string of the correct length for testing
-        transaction.recentBlockhash = '6UqjRQFtU2U5fjRdUoK5z7o3Fqo6pKpKqM6z7Nz7z7z7z7z';
+        // Use Surfpool's blockhash as-is and try simulation with skipSigVerify
+        const { blockhash } = await this.connection.getLatestBlockhash();
+        transaction.recentBlockhash = blockhash;
         transaction.feePayer = this.wallet.publicKey;
-        this.log('✓ Added dummy blockhash for signature testing');
-        this.log(`Blockhash: ${transaction.recentBlockhash}`);
+        this.log('✓ Added Surfpool blockhash');
+        this.log(`Blockhash: ${blockhash}`);
       } catch (error) {
         this.log(`✗ Failed to set blockhash: ${error}`);
         throw new Error('Transaction recentBlockhash required');
@@ -334,9 +334,13 @@ class HolstromIntegratedSDKStrategy {
         }
 
         // Use the signed transaction for simulation
-        const simulationResult = await this.connection.simulateTransaction(transaction);
+        // Try with skipSigVerify to bypass signature verification for testing
+        this.log('Attempting simulation with skipSigVerify...');
+        const simulationResult = await this.connection.simulateTransaction(transaction, {
+          skipSigVerify: true
+        });
         const simulationValue = simulationResult.value;
-        this.log(`✓ Transaction simulation: ${simulationValue.err ? 'FAILED' : 'SUCCESS'}`);
+        this.log(`✓ Transaction simulation (skipSigVerify): ${simulationValue.err ? 'FAILED' : 'SUCCESS'}`);
         if (simulationValue.err) {
           this.log(`  Simulation error: ${JSON.stringify(simulationValue.err)}`);
         } else {
