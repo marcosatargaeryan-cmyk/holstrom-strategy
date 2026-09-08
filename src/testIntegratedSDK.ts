@@ -297,7 +297,7 @@ class HolstromIntegratedSDKStrategy {
 
         // Check wallet balance
         const balance = await this.connection.getBalance(this.wallet.publicKey);
-        this.log(`Wallet balance: ${balance.value} lamports`);
+        this.log(`Wallet balance: ${balance} lamports`);
 
         // Clear any existing signatures and sign fresh
         transaction.signatures = [];
