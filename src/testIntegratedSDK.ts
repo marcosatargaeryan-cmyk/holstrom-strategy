@@ -173,7 +173,7 @@ class HolstromIntegratedSDKStrategy {
             reserveAddress: KAMINO_USDC_RESERVE,
             amount: 100.0 // Fixed small amount for testing
           },
-          usdcAta // Pass ATA instead of wallet public key
+          usdcAta
         );
         if (borrowIx) {
           instructions.push(borrowIx);
@@ -221,7 +221,7 @@ class HolstromIntegratedSDKStrategy {
             reserveAddress: KAMINO_USDC_RESERVE,
             amount: 100.0 // Match borrow amount
           },
-          usdcAta, // Pass ATA instead of wallet public key
+          usdcAta,
           borrowIndex // Borrow instruction index
         );
         if (usdcRepayIx) {
