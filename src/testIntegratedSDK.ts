@@ -266,17 +266,20 @@ class HolstromIntegratedSDKStrategy {
 
       // Add recent blockhash
       try {
-        // Surfpool might return placeholder blockhashes, try multiple methods
+        // Surfpool might return placeholder blockhashes, try to get from specific slot
         let blockhash;
         try {
-          const { blockhash: bh } = await this.connection.getLatestBlockhash('finalized');
+          const slot = await this.connection.getSlot();
+          this.log(`Current slot: ${slot}`);
+          const { blockhash: bh } = await this.connection.getRecentBlockhash(slot);
           blockhash = bh;
-          this.log(`Got finalized blockhash: ${blockhash}`);
+          this.log(`Got blockhash from slot ${slot}: ${blockhash}`);
         } catch (e) {
+          // Fallback to standard methods
           try {
-            const { blockhash: bh } = await this.connection.getLatestBlockhash('confirmed');
+            const { blockhash: bh } = await this.connection.getLatestBlockhash('finalized');
             blockhash = bh;
-            this.log(`Got confirmed blockhash: ${blockhash}`);
+            this.log(`Got finalized blockhash: ${blockhash}`);
           } catch (e2) {
             const { blockhash: bh } = await this.connection.getLatestBlockhash();
             blockhash = bh;
