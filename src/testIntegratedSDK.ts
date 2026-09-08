@@ -269,11 +269,10 @@ class HolstromIntegratedSDKStrategy {
         this.log(`Instructions count: ${transaction.instructions.length}`);
 
         // Create a fresh transaction to ensure clean state
-        const freshTx = new Transaction({
-          feePayer: this.wallet.publicKey,
-          recentBlockhash: transaction.recentBlockhash,
-          instructions: transaction.instructions
-        });
+        const freshTx = new Transaction();
+        freshTx.feePayer = this.wallet.publicKey;
+        freshTx.recentBlockhash = transaction.recentBlockhash;
+        transaction.instructions.forEach(ix => freshTx.add(ix));
 
         freshTx.sign(this.wallet);
         this.log('✓ Transaction signed with wallet');
