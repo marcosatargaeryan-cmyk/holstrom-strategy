@@ -266,32 +266,15 @@ class HolstromIntegratedSDKStrategy {
 
       // Add recent blockhash
       try {
-        // Surfpool might return placeholder blockhashes, try to get from specific slot
-        let blockhash;
-        try {
-          const slot = await this.connection.getSlot();
-          this.log(`Current slot: ${slot}`);
-          const { blockhash: bh } = await this.connection.getRecentBlockhash('finalized');
-          blockhash = bh;
-          this.log(`Got finalized blockhash: ${blockhash}`);
-        } catch (e) {
-          // Fallback to standard methods
-          try {
-            const { blockhash: bh } = await this.connection.getLatestBlockhash('finalized');
-            blockhash = bh;
-            this.log(`Got finalized blockhash: ${blockhash}`);
-          } catch (e2) {
-            const { blockhash: bh } = await this.connection.getLatestBlockhash();
-            blockhash = bh;
-            this.log(`Got default blockhash: ${blockhash}`);
-          }
-        }
-        transaction.recentBlockhash = blockhash;
+        // Skip Surfpool blockhash issue and try to test signature with simulation
+        // If this works, the issue is the blockhash; if not, it's the signature itself
+        this.log('Skipping blockhash fetch (Surfpool returns placeholders)');
+        this.log('Setting a dummy blockhash for signature testing');
+        transaction.recentBlockhash = 'AAAAAA' + 'x'.repeat(30); // Dummy 32-byte blockhash
         transaction.feePayer = this.wallet.publicKey;
-        this.log('✓ Added recent blockhash to transaction');
-        this.log(`Blockhash: ${blockhash}`);
+        this.log('✓ Added dummy blockhash for signature testing');
       } catch (error) {
-        this.log(`✗ Failed to get blockhash: ${error}`);
+        this.log(`✗ Failed to set blockhash: ${error}`);
         throw new Error('Transaction recentBlockhash required');
       }
 
