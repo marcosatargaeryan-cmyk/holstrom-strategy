@@ -310,6 +310,11 @@ class HolstromIntegratedSDKStrategy {
         const serialized = transaction.serialize();
         this.log(`Transaction serialized length: ${serialized.length} bytes`);
 
+        // Try to reconstruct transaction from serialized data to verify it's valid
+        const reconstructed = Transaction.from(serialized);
+        this.log(`✓ Transaction reconstruction successful`);
+        this.log(`Reconstructed feePayer: ${reconstructed.feePayer?.toString()}`);
+
         // Use the signed transaction for simulation
         const simulationResult = await this.connection.simulateTransaction(transaction);
         const simulationValue = simulationResult.value;
