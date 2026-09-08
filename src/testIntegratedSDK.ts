@@ -277,19 +277,19 @@ class HolstromIntegratedSDKStrategy {
         this.log(`Transaction recentBlockhash: ${transaction.recentBlockhash}`);
         this.log(`Instructions count: ${transaction.instructions.length}`);
 
-        // Create a fresh transaction to ensure clean state
-        const freshTx = new Transaction();
-        freshTx.feePayer = this.wallet.publicKey;
-        freshTx.recentBlockhash = transaction.recentBlockhash;
-        transaction.instructions.forEach(ix => freshTx.add(ix));
-
-        freshTx.sign(this.wallet);
+        // Sign the existing transaction directly
+        transaction.sign(this.wallet);
         this.log('✓ Transaction signed with wallet');
-        this.log(`Transaction signatures: ${freshTx.signatures.length}`);
-        this.log(`Signatures: ${freshTx.signatures.map(s => s.toString())}`);
+        this.log(`Transaction signatures: ${transaction.signatures.length}`);
+        this.log(`Signatures: ${transaction.signatures.map(s => s.toString())}`);
+
+        // Verify signature is present
+        if (transaction.signatures.length === 0 || transaction.signatures[0].length === 0) {
+          throw new Error('Transaction signature is empty');
+        }
 
         // Use the signed transaction for simulation
-        const simulationResult = await this.connection.simulateTransaction(freshTx);
+        const simulationResult = await this.connection.simulateTransaction(transaction);
         const simulationValue = simulationResult.value;
         this.log(`✓ Transaction simulation: ${simulationValue.err ? 'FAILED' : 'SUCCESS'}`);
         if (simulationValue.err) {
