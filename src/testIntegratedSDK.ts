@@ -162,6 +162,9 @@ class HolstromIntegratedSDKStrategy {
       
       // Flash Loan Borrow Instruction
       try {
+        // Skip flash loan for now to test basic signing
+        this.log('⚠ Flash loan borrow instruction skipped (testing basic signing)');
+        /*
         // Ensure wallet has ATA for USDC
         const usdcAta = await this.flashLoan.ensureTokenAccount(CONFIG.usdcMint);
         this.log(`USDC ATA: ${usdcAta.toString()}`);
@@ -181,6 +184,7 @@ class HolstromIntegratedSDKStrategy {
         } else {
           this.log('⚠ Flash loan borrow instruction is placeholder');
         }
+        */
       } catch (error) {
         this.log(`✗ Flash loan borrow instruction failed: ${error}`);
       }
@@ -208,6 +212,9 @@ class HolstromIntegratedSDKStrategy {
 
       // Flash Loan Repay Instructions
       try {
+        // Skip flash loan repay for now to test basic signing
+        this.log('⚠ Flash loan repay instruction skipped (testing basic signing)');
+        /*
         const borrowIndex = 0; // Borrow is first instruction (index 0)
         this.log(`Borrow instruction index: ${borrowIndex}`);
 
@@ -230,11 +237,22 @@ class HolstromIntegratedSDKStrategy {
         } else {
           this.log('⚠ Flash loan USDC repay instruction is placeholder');
         }
+        */
       } catch (error) {
         this.log(`✗ Flash loan repay instructions failed: ${error}`);
       }
 
-      this.log('⚠ Simplified test: only flash loan borrow/repay cycle');
+      this.log('⚠ Testing basic transaction signing (no flash loan instructions)');
+
+      // Add a dummy instruction to test signing
+      const { SystemProgram } = await import('@solana/web3.js');
+      const dummyIx = SystemProgram.transfer({
+        fromPubkey: this.wallet.publicKey,
+        toPubkey: this.wallet.publicKey,
+        lamports: 0
+      });
+      instructions.push(dummyIx);
+      this.log('✓ Added dummy transfer instruction for signing test');
 
       // Phase 3: Build Atomic Transaction
       this.log('\n=== Phase 3: Build Atomic Transaction ===');
