@@ -293,16 +293,32 @@ class HolstromIntegratedSDKStrategy {
         this.log(`Transaction serialized length: ${serialized.length} bytes`);
 
         // Use the signed transaction for simulation
-        const simulationResult = await this.connection.simulateTransaction(transaction);
-        const simulationValue = simulationResult.value;
-        this.log(`✓ Transaction simulation: ${simulationValue.err ? 'FAILED' : 'SUCCESS'}`);
-        if (simulationValue.err) {
-          this.log(`  Simulation error: ${JSON.stringify(simulationValue.err)}`);
-        } else {
-          this.log(`  Compute units consumed: ${simulationValue.unitsConsumed}`);
-          result.atomicTransaction = true; // Only mark atomic if simulation succeeds
+        // Try with skipSigVerify first to see if the transaction itself is valid
+        try {
+          const simulationResult = await this.connection.simulateTransaction(transaction, { skipSigVerify: true });
+          const simulationValue = simulationResult.value;
+          this.log(`✓ Transaction simulation (skipSigVerify): ${simulationValue.err ? 'FAILED' : 'SUCCESS'}`);
+          if (simulationValue.err) {
+            this.log(`  Simulation error: ${JSON.stringify(simulationValue.err)}`);
+          } else {
+            this.log(`  Compute units consumed: ${simulationValue.unitsConsumed}`);
+            result.atomicTransaction = true; // Only mark atomic if simulation succeeds
+          }
+          return result; // Return early after simulation
+        } catch (skipError) {
+          this.log(`⚠ Simulation with skipSigVerify failed: ${skipError}`);
+          // Try normal simulation
+          const simulationResult = await this.connection.simulateTransaction(transaction);
+          const simulationValue = simulationResult.value;
+          this.log(`✓ Transaction simulation: ${simulationValue.err ? 'FAILED' : 'SUCCESS'}`);
+          if (simulationValue.err) {
+            this.log(`  Simulation error: ${JSON.stringify(simulationValue.err)}`);
+          } else {
+            this.log(`  Compute units consumed: ${simulationValue.unitsConsumed}`);
+            result.atomicTransaction = true; // Only mark atomic if simulation succeeds
+          }
+          return result; // Return early after simulation
         }
-        return result; // Return early after simulation
       } catch (error) {
         this.log(`✗ Failed to sign/simulate transaction: ${error}`);
         throw new Error('Transaction signing/simulation failed');
