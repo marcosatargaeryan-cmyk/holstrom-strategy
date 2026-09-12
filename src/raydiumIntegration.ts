@@ -10,6 +10,7 @@ import {
   Raydium,
   TxVersion,
   TickUtil,
+  Percent,
 } from '@raydium-io/raydium-sdk-v2';
 
 // Token decimals
@@ -127,7 +128,6 @@ export class RaydiumCLMMIntegration {
 
     try {
       const inputAmountBN = new BN(Math.floor(inputAmountSol * 10 ** SOL_DECIMALS));
-      const slippage = new Percent(DEFAULT_SLIPPAGE_BPS, 10000);
 
       console.log(`Executing Raydium swap: ${inputAmountSol.toFixed(4)} ${swapForY ? 'SOL→USDC' : 'USDC→SOL'}`);
 
@@ -137,7 +137,6 @@ export class RaydiumCLMMIntegration {
         inputMint: swapForY ? this.poolInfo.mintA : this.poolInfo.mintB,
         amountIn: inputAmountBN,
         amountOutMin: new BN(0),
-        slippage,
         computeBudgetConfig: { microLamports: 600000 },
         txVersion: TxVersion.V0,
       });
@@ -188,7 +187,7 @@ export class RaydiumCLMMIntegration {
       console.log(`Opening Raydium position ticks [${tickLower}, ${tickUpper}] (prices $${lowerBoundPrice}–$${upperBoundPrice})`);
 
       // Open position with minimal liquidity
-      const { execute } = await this.raydium.clmm.openPositionFromBase({
+      const { execute } = await this.raydium!.clmm.openPositionFromBase({
         poolInfo: this.poolInfo,
         poolKeys: this.poolKeys,
         tickLower,
@@ -231,7 +230,7 @@ export class RaydiumCLMMIntegration {
       const usdcAmountBN = new BN(Math.floor(usdcAmount * 10 ** USDC_DECIMALS));
 
       // Get position info
-      const allPositions = await this.raydium.clmm.getOwnerPositionInfo({
+      const allPositions = await this.raydium!.clmm.getOwnerPositionInfo({
         programId: this.poolInfo.programId,
       });
       const positionAccount = allPositions.find((p: any) => p.nftMint.equals(positionPubkey));
@@ -242,9 +241,9 @@ export class RaydiumCLMMIntegration {
 
       console.log(`Increasing liquidity by ${usdcAmount.toFixed(2)} USDC`);
 
-      const { execute } = await this.raydium.clmm.increasePositionFromBase({
+      const { execute } = await this.raydium!.clmm.increasePositionFromBase({
         poolInfo: this.poolInfo,
-        ownerPosition: positionAccount,
+        ownerPosition: positionAccount as any,
         ownerInfo: { useSOLBalance: true },
         base: 'MintB', // USDC
         baseAmount: usdcAmountBN,
@@ -274,7 +273,7 @@ export class RaydiumCLMMIntegration {
 
     try {
       // Get position info
-      const allPositions = await this.raydium.clmm.getOwnerPositionInfo({
+      const allPositions = await this.raydium!.clmm.getOwnerPositionInfo({
         programId: this.poolInfo.programId,
       });
       const positionAccount = allPositions.find((p: any) => p.nftMint.equals(positionPubkey));
@@ -285,10 +284,10 @@ export class RaydiumCLMMIntegration {
 
       console.log(`Decreasing liquidity: ${liquidityAmount.toString()}`);
 
-      const { execute } = await this.raydium.clmm.decreaseLiquidity({
+      const { execute } = await this.raydium!.clmm.decreaseLiquidity({
         poolInfo: this.poolInfo,
         poolKeys: this.poolKeys,
-        ownerPosition: positionAccount,
+        ownerPosition: positionAccount as any,
         ownerInfo: { useSOLBalance: true, closePosition: false },
         liquidity: liquidityAmount,
         amountMinA: new BN(0),
@@ -314,7 +313,7 @@ export class RaydiumCLMMIntegration {
     }
 
     try {
-      const allPositions = await this.raydium.clmm.getOwnerPositionInfo({
+      const allPositions = await this.raydium!.clmm.getOwnerPositionInfo({
         programId: this.poolInfo.programId,
       });
       const positionAccount = allPositions.find((p: any) => p.nftMint.equals(positionPubkey));
