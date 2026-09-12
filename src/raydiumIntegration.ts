@@ -10,6 +10,8 @@ import {
   Raydium,
   TxVersion,
   Percent,
+  TickUtil,
+  PoolUtils,
 } from '@raydium-io/raydium-sdk-v2';
 
 // Token decimals
@@ -48,6 +50,7 @@ export class RaydiumCLMMIntegration {
   private poolAddress: PublicKey;
   private raydium: Raydium | null = null;
   private poolInfo: any = null;
+  private poolKeys: any = null;
 
   constructor(connection: Connection, wallet: Keypair, poolAddress: PublicKey) {
     this.connection = connection;
@@ -68,16 +71,14 @@ export class RaydiumCLMMIntegration {
         disableLoadToken: true,
       });
 
-      // Fetch pool info
-      const poolData = await this.raydium.api.getClmmPoolInfo({ poolIds: [this.poolAddress.toString()] });
-      if (poolData.success && poolData.data && poolData.data.length > 0) {
-        this.poolInfo = poolData.data[0];
-        console.log(`✓ Raydium CLMM initialized — pool: ${this.poolAddress.toString()}`);
-        console.log(`  tickSpacing: ${this.poolInfo.tickSpacing}`);
-        console.log(`  currentPrice: $${this.poolInfo.price || 'n/a'}`);
-      } else {
-        throw new Error('Failed to fetch pool info from API');
-      }
+      // Fetch pool info from RPC
+      const { poolInfo, poolKeys } = await this.raydium.clmm.getPoolInfoFromRpc(this.poolAddress.toString());
+      this.poolInfo = poolInfo;
+      this.poolKeys = poolKeys;
+
+      console.log(`✓ Raydium CLMM initialized — pool: ${this.poolAddress.toString()}`);
+      console.log(`  tickSpacing: ${poolInfo.config.tickSpacing}`);
+      console.log(`  currentPrice: $${poolInfo.price || 'n/a'}`);
     } catch (error) {
       console.warn(`Raydium SDK initialization failed: ${error}`);
       throw error;
@@ -100,7 +101,7 @@ export class RaydiumCLMMIntegration {
     return {
       address: this.poolAddress,
       currentPrice,
-      tickSpacing: this.poolInfo.tickSpacing,
+      tickSpacing: this.poolInfo.config.tickSpacing,
       tokenXMint: new PublicKey(this.poolInfo.mintA.address),
       tokenYMint: new PublicKey(this.poolInfo.mintB.address),
     };
@@ -132,9 +133,10 @@ export class RaydiumCLMMIntegration {
       // Build swap transaction using Raydium SDK
       const { execute, extInfo } = await this.raydium.clmm.swap({
         poolInfo: this.poolInfo,
-        inputAmount: inputAmountBN,
-        tokenIn: swapForY ? this.poolInfo.mintA : this.poolInfo.mintB,
-        tokenOut: swapForY ? this.poolInfo.mintB : this.poolInfo.mintA,
+        poolKeys: this.poolKeys,
+        inputMint: swapForY ? this.poolInfo.mintA : this.poolInfo.mintB,
+        amountIn: inputAmountBN,
+        amountOut: new BN(0), // Will be calculated
         slippage,
         computeBudgetConfig: { microLamports: 600000 },
         txVersion: TxVersion.V0,
@@ -165,35 +167,56 @@ export class RaydiumCLMMIntegration {
       await this.initialize();
     }
 
-    // Convert prices to ticks using the SDK's utility
-    const lowerTick = Math.floor(lowerBoundPrice * 100); // Simplified tick calculation
-    const upperTick = Math.floor(upperBoundPrice * 100);
+    try {
+      // Convert prices to ticks using the SDK's utility
+      const { tick: tickLower } = TickUtil.getPriceAndTick({
+        price: new Decimal(lowerBoundPrice),
+        mintADecimals: this.poolInfo.mintA.decimals,
+        mintBDecimals: this.poolInfo.mintB.decimals,
+        zeroForOne: true,
+        tickSpacing: this.poolInfo.config.tickSpacing,
+      });
 
-    console.log(`Opening Raydium position ticks [${lowerTick}, ${upperTick}] (prices $${lowerBoundPrice}–$${upperBoundPrice})`);
+      const { tick: tickUpper } = TickUtil.getPriceAndTick({
+        price: new Decimal(upperBoundPrice),
+        mintADecimals: this.poolInfo.mintA.decimals,
+        mintBDecimals: this.poolInfo.mintB.decimals,
+        zeroForOne: true,
+        tickSpacing: this.poolInfo.config.tickSpacing,
+      });
 
-    const { execute } = await this.raydium.clmm.createPosition({
-      poolInfo: this.poolInfo,
-      lowerTick,
-      upperTick,
-      baseToken: this.poolInfo.mintA,
-      quoteToken: this.poolInfo.mintB,
-      positionPda: positionKeypair.publicKey,
-      txVersion: TxVersion.V0,
-    });
+      console.log(`Opening Raydium position ticks [${tickLower}, ${tickUpper}] (prices $${lowerBoundPrice}–$${upperBoundPrice})`);
 
-    const txData = await execute.build({ wallet: this.wallet });
-    const sig = await this.connection.sendTransaction(txData.transaction, [this.wallet, positionKeypair]);
-    await this.connection.confirmTransaction(sig);
+      // Open position with minimal liquidity
+      const { execute } = await this.raydium.clmm.openPositionFromBase({
+        poolInfo: this.poolInfo,
+        poolKeys: this.poolKeys,
+        tickLower,
+        tickUpper,
+        base: 'MintA',
+        baseAmount: new BN(1), // Minimal amount
+        otherAmountMax: new BN(1),
+        ownerInfo: { useSOLBalance: true },
+        txVersion: TxVersion.V0,
+      });
 
-    console.log(`✓ Raydium position opened: ${positionKeypair.publicKey.toString()} — tx: ${sig}`);
+      const txData = await execute.build({ wallet: this.wallet });
+      const sig = await this.connection.sendTransaction(txData.transaction, [this.wallet]);
+      await this.connection.confirmTransaction(sig);
 
-    return {
-      positionPubkey: positionKeypair.publicKey,
-      positionKeypair,
-      lowerTick,
-      upperTick,
-      depositedUSDC: new BN(0), // Empty position initially
-    };
+      console.log(`✓ Raydium position opened: ${positionKeypair.publicKey.toString()} — tx: ${sig}`);
+
+      return {
+        positionPubkey: positionKeypair.publicKey,
+        positionKeypair,
+        lowerTick: tickLower,
+        upperTick: tickUpper,
+        depositedUSDC: new BN(0), // Empty position initially
+      };
+    } catch (err) {
+      console.error('openPosition failed:', err);
+      throw err;
+    }
   }
 
   /**
@@ -209,16 +232,31 @@ export class RaydiumCLMMIntegration {
     }
 
     try {
-      const lowerTick = Math.floor(lowerBoundPrice * 100);
-      const upperTick = Math.floor(upperBoundPrice * 100);
+      const { tick: tickLower } = TickUtil.getPriceAndTick({
+        price: new Decimal(lowerBoundPrice),
+        mintADecimals: this.poolInfo.mintA.decimals,
+        mintBDecimals: this.poolInfo.mintB.decimals,
+        zeroForOne: true,
+        tickSpacing: this.poolInfo.config.tickSpacing,
+      });
 
-      const { execute } = await this.raydium.clmm.createPosition({
+      const { tick: tickUpper } = TickUtil.getPriceAndTick({
+        price: new Decimal(upperBoundPrice),
+        mintADecimals: this.poolInfo.mintA.decimals,
+        mintBDecimals: this.poolInfo.mintB.decimals,
+        zeroForOne: true,
+        tickSpacing: this.poolInfo.config.tickSpacing,
+      });
+
+      const { execute } = await this.raydium.clmm.openPositionFromBase({
         poolInfo: this.poolInfo,
-        lowerTick,
-        upperTick,
-        baseToken: this.poolInfo.mintA,
-        quoteToken: this.poolInfo.mintB,
-        positionPda: positionKeypair.publicKey,
+        poolKeys: this.poolKeys,
+        tickLower,
+        tickUpper,
+        base: 'MintA',
+        baseAmount: new BN(1),
+        otherAmountMax: new BN(1),
+        ownerInfo: { useSOLBalance: true },
         txVersion: TxVersion.V0,
       });
 
@@ -247,12 +285,23 @@ export class RaydiumCLMMIntegration {
       const usdcAmountBN = new BN(Math.floor(usdcAmount * 10 ** USDC_DECIMALS));
       const slippage = new Percent(DEFAULT_SLIPPAGE_BPS, 10000);
 
-      const { execute } = await this.raydium.clmm.addLiquidity({
+      // Get position info
+      const allPositions = await this.raydium.clmm.getOwnerPositionInfo({
+        programId: this.poolInfo.programId,
+      });
+      const positionAccount = allPositions.find((p: any) => p.nftMint.equals(positionPubkey));
+      
+      if (!positionAccount) {
+        throw new Error('Position not found');
+      }
+
+      const { execute } = await this.raydium.clmm.increasePositionFromBase({
         poolInfo: this.poolInfo,
-        positionAddress: positionPubkey,
-        amountInA: new BN(0), // No SOL
-        amountInB: usdcAmountBN, // USDC only
-        slippage,
+        ownerPosition: positionAccount,
+        ownerInfo: { useSOLBalance: true },
+        base: 'MintB', // USDC
+        baseAmount: usdcAmountBN,
+        otherAmountMax: new BN(0),
         txVersion: TxVersion.V0,
       });
 
@@ -280,11 +329,24 @@ export class RaydiumCLMMIntegration {
     try {
       const slippage = new Percent(DEFAULT_SLIPPAGE_BPS, 10000);
 
-      const { execute } = await this.raydium.clmm.removeLiquidity({
+      // Get position info
+      const allPositions = await this.raydium.clmm.getOwnerPositionInfo({
+        programId: this.poolInfo.programId,
+      });
+      const positionAccount = allPositions.find((p: any) => p.nftMint.equals(positionPubkey));
+      
+      if (!positionAccount) {
+        throw new Error('Position not found');
+      }
+
+      const { execute } = await this.raydium.clmm.decreaseLiquidity({
         poolInfo: this.poolInfo,
-        positionAddress: positionPubkey,
+        poolKeys: this.poolKeys,
+        ownerPosition: positionAccount,
+        ownerInfo: { useSOLBalance: true, closePosition: false },
         liquidity: liquidityAmount,
-        slippage,
+        amountMinA: new BN(0),
+        amountMinB: new BN(0),
         txVersion: TxVersion.V0,
       });
 
@@ -307,8 +369,16 @@ export class RaydiumCLMMIntegration {
     }
 
     try {
-      const positionInfo = await this.raydium.clmm.getPositionInfo(positionPubkey);
-      return positionInfo.liquidity || new BN(0);
+      const allPositions = await this.raydium.clmm.getOwnerPositionInfo({
+        programId: this.poolInfo.programId,
+      });
+      const positionAccount = allPositions.find((p: any) => p.nftMint.equals(positionPubkey));
+      
+      if (!positionAccount) {
+        throw new Error('Position not found');
+      }
+
+      return positionAccount.liquidity || new BN(0);
     } catch (err) {
       console.error('getPositionLiquidity failed:', err);
       return new BN(0);
