@@ -358,6 +358,59 @@ export class KaminoFlashLoanIntegration {
       return 5_000_000;
     }
   }
+
+  // ─── Sequential Execution Methods ─────────────────────────────────────────────
+
+  /**
+   * Execute flash borrow (sequential execution)
+   */
+  async executeFlashBorrow(tokenType: 'SOL' | 'USDC', amount: number): Promise<string> {
+    const tokenMint = tokenType === 'SOL' ? SOL_MINT : USDC_MINT;
+    const reserveAddress = getKaminoReserve(tokenMint);
+    
+    console.log(`Executing flash borrow: ${amount} ${tokenType}`);
+    
+    const destinationAta = await this.ensureTokenAccount(tokenMint);
+    const borrowIx = await this.buildBorrowInstruction(
+      { tokenMint, reserveAddress, amount },
+      destinationAta
+    );
+    
+    const tx = new Transaction().add(borrowIx);
+    const { blockhash } = await this.connection.getLatestBlockhash();
+    tx.recentBlockhash = blockhash;
+    tx.feePayer = this.wallet.publicKey;
+    
+    const sig = await sendAndConfirmTransaction(this.connection, tx, [this.wallet]);
+    console.log(`✓ Flash borrow executed: ${sig}`);
+    return sig;
+  }
+
+  /**
+   * Execute flash repay (sequential execution)
+   */
+  async executeFlashRepay(tokenType: 'SOL' | 'USDC', amount: number): Promise<string> {
+    const tokenMint = tokenType === 'SOL' ? SOL_MINT : USDC_MINT;
+    const reserveAddress = getKaminoReserve(tokenMint);
+    
+    console.log(`Executing flash repay: ${amount} ${tokenType}`);
+    
+    const sourceAta = await this.ensureTokenAccount(tokenMint);
+    const repayIx = await this.buildRepayInstruction(
+      { tokenMint, reserveAddress, amount },
+      sourceAta,
+      0 // borrow instruction index (assuming first instruction)
+    );
+    
+    const tx = new Transaction().add(repayIx);
+    const { blockhash } = await this.connection.getLatestBlockhash();
+    tx.recentBlockhash = blockhash;
+    tx.feePayer = this.wallet.publicKey;
+    
+    const sig = await sendAndConfirmTransaction(this.connection, tx, [this.wallet]);
+    console.log(`✓ Flash repay executed: ${sig}`);
+    return sig;
+  }
 }
 
 // ─── Convenience: known reserve selector ─────────────────────────────────────

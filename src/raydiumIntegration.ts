@@ -9,9 +9,7 @@ import Decimal from 'decimal.js';
 import {
   Raydium,
   TxVersion,
-  Percent,
   TickUtil,
-  PoolUtils,
 } from '@raydium-io/raydium-sdk-v2';
 
 // Token decimals
@@ -34,6 +32,7 @@ export interface SwapResult {
   outAmount: BN;
   fee: BN;
   priceImpact: number;
+  signature: string;
 }
 
 export interface PositionResult {
@@ -42,6 +41,7 @@ export interface PositionResult {
   lowerTick: number;
   upperTick: number;
   depositedUSDC: BN;
+  signature: string;
 }
 
 export class RaydiumCLMMIntegration {
@@ -113,15 +113,15 @@ export class RaydiumCLMMIntegration {
     return state.currentPrice;
   }
 
-  // ─── Swap ────────────────────────────────────────────────────────────────────
+  // ─── Swap (Sequential Execution) ─────────────────────────────────────────────
 
   /**
-   * Build swap instructions for Raydium CLMM
+   * Execute swap using Raydium SDK (sequential execution)
    */
-  async buildSwapInstructions(
+  async executeSwap(
     inputAmountSol: number,
     swapForY: boolean  // true = SOL→USDC, false = USDC→SOL
-  ): Promise<TransactionInstruction[]> {
+  ): Promise<SwapResult> {
     if (!this.raydium || !this.poolInfo) {
       await this.initialize();
     }
@@ -130,33 +130,40 @@ export class RaydiumCLMMIntegration {
       const inputAmountBN = new BN(Math.floor(inputAmountSol * 10 ** SOL_DECIMALS));
       const slippage = new Percent(DEFAULT_SLIPPAGE_BPS, 10000);
 
-      // Build swap transaction using Raydium SDK
+      console.log(`Executing Raydium swap: ${inputAmountSol.toFixed(4)} ${swapForY ? 'SOL→USDC' : 'USDC→SOL'}`);
+
       const { execute, extInfo } = await this.raydium.clmm.swap({
         poolInfo: this.poolInfo,
         poolKeys: this.poolKeys,
         inputMint: swapForY ? this.poolInfo.mintA : this.poolInfo.mintB,
         amountIn: inputAmountBN,
-        amountOut: new BN(0), // Will be calculated
+        amountOutMin: new BN(0),
         slippage,
         computeBudgetConfig: { microLamports: 600000 },
         txVersion: TxVersion.V0,
       });
 
-      const txData = await execute.build({ wallet: this.wallet });
-      const ixs = txData.transaction.instructions;
-      console.log(`✓ Raydium swap instructions built (${ixs.length} ixs, swapForY=${swapForY}, amount=${inputAmountSol})`);
+      const { txId } = await execute({ sendAndConfirm: true });
+      console.log(`✓ Swap executed: ${txId}`);
       console.log(`  Estimated out: ${extInfo?.estimatedOut?.toString() || 'n/a'}`);
-      return ixs;
+
+      return {
+        inAmount: inputAmountBN,
+        outAmount: extInfo?.estimatedOut || new BN(0),
+        fee: new BN(0), // Not provided by SDK
+        priceImpact: 0, // Not provided by SDK
+        signature: txId,
+      };
     } catch (err) {
-      console.error('buildSwapInstructions failed:', err);
-      return [];
+      console.error('executeSwap failed:', err);
+      throw err;
     }
   }
 
-  // ─── Position Management ─────────────────────────────────────────────────────
+  // ─── Position Management (Sequential Execution) ─────────────────────────────
 
   /**
-   * Open an empty Raydium CLMM position (pre-transaction)
+   * Open Raydium CLMM position (sequential execution)
    */
   async openPosition(
     lowerBoundPrice: number,
@@ -200,11 +207,8 @@ export class RaydiumCLMMIntegration {
         txVersion: TxVersion.V0,
       });
 
-      const txData = await execute.build({ wallet: this.wallet });
-      const sig = await this.connection.sendTransaction(txData.transaction, [this.wallet]);
-      await this.connection.confirmTransaction(sig);
-
-      console.log(`✓ Raydium position opened: ${positionKeypair.publicKey.toString()} — tx: ${sig}`);
+      const { txId } = await execute({ sendAndConfirm: true });
+      console.log(`✓ Raydium position opened: tx: ${txId}`);
 
       return {
         positionPubkey: positionKeypair.publicKey,
@@ -212,6 +216,7 @@ export class RaydiumCLMMIntegration {
         lowerTick: tickLower,
         upperTick: tickUpper,
         depositedUSDC: new BN(0), // Empty position initially
+        signature: txId,
       };
     } catch (err) {
       console.error('openPosition failed:', err);
@@ -220,70 +225,18 @@ export class RaydiumCLMMIntegration {
   }
 
   /**
-   * Build open_position_v2 instructions for atomic use
+   * Increase liquidity on position (sequential execution)
    */
-  async buildOpenPositionInstructions(
-    lowerBoundPrice: number,
-    upperBoundPrice: number,
-    positionKeypair: Keypair
-  ): Promise<TransactionInstruction[]> {
-    if (!this.raydium || !this.poolInfo) {
-      await this.initialize();
-    }
-
-    try {
-      const { tick: tickLower } = TickUtil.getPriceAndTick({
-        price: new Decimal(lowerBoundPrice),
-        mintADecimals: this.poolInfo.mintA.decimals,
-        mintBDecimals: this.poolInfo.mintB.decimals,
-        zeroForOne: true,
-        tickSpacing: this.poolInfo.config.tickSpacing,
-      });
-
-      const { tick: tickUpper } = TickUtil.getPriceAndTick({
-        price: new Decimal(upperBoundPrice),
-        mintADecimals: this.poolInfo.mintA.decimals,
-        mintBDecimals: this.poolInfo.mintB.decimals,
-        zeroForOne: true,
-        tickSpacing: this.poolInfo.config.tickSpacing,
-      });
-
-      const { execute } = await this.raydium.clmm.openPositionFromBase({
-        poolInfo: this.poolInfo,
-        poolKeys: this.poolKeys,
-        tickLower,
-        tickUpper,
-        base: 'MintA',
-        baseAmount: new BN(1),
-        otherAmountMax: new BN(1),
-        ownerInfo: { useSOLBalance: true },
-        txVersion: TxVersion.V0,
-      });
-
-      const txData = await execute.build({ wallet: this.wallet });
-      const ixs = txData.transaction.instructions;
-      console.log(`✓ Raydium open position instructions built (${ixs.length} ixs) for range [$${lowerBoundPrice}–$${upperBoundPrice}]`);
-      return ixs;
-    } catch (err) {
-      console.error('buildOpenPositionInstructions failed:', err);
-      return [];
-    }
-  }
-
-  /**
-   * Build increase_liquidity_v2 instructions (fill position in atomic tx)
-   */
-  async buildIncreaseLiquidityInstructions(
+  async increaseLiquidity(
     positionPubkey: PublicKey,
     usdcAmount: number
-  ): Promise<TransactionInstruction[]> {
+  ): Promise<string> {
     if (!this.raydium || !this.poolInfo) {
       await this.initialize();
     }
 
     try {
       const usdcAmountBN = new BN(Math.floor(usdcAmount * 10 ** USDC_DECIMALS));
-      const slippage = new Percent(DEFAULT_SLIPPAGE_BPS, 10000);
 
       // Get position info
       const allPositions = await this.raydium.clmm.getOwnerPositionInfo({
@@ -294,6 +247,8 @@ export class RaydiumCLMMIntegration {
       if (!positionAccount) {
         throw new Error('Position not found');
       }
+
+      console.log(`Increasing liquidity by ${usdcAmount.toFixed(2)} USDC`);
 
       const { execute } = await this.raydium.clmm.increasePositionFromBase({
         poolInfo: this.poolInfo,
@@ -305,30 +260,27 @@ export class RaydiumCLMMIntegration {
         txVersion: TxVersion.V0,
       });
 
-      const txData = await execute.build({ wallet: this.wallet });
-      const ixs = txData.transaction.instructions;
-      console.log(`✓ Raydium increase_liquidity_v2 instructions built (${ixs.length} ixs, amount=${usdcAmount} USDC)`);
-      return ixs;
+      const { txId } = await execute({ sendAndConfirm: true });
+      console.log(`✓ Liquidity increased: tx: ${txId}`);
+      return txId;
     } catch (err) {
-      console.error('buildIncreaseLiquidityInstructions failed:', err);
-      return [];
+      console.error('increaseLiquidity failed:', err);
+      throw err;
     }
   }
 
   /**
-   * Build decrease_liquidity_v2 instructions (withdraw position in atomic tx)
+   * Decrease liquidity from position (sequential execution)
    */
-  async buildDecreaseLiquidityInstructions(
+  async decreaseLiquidity(
     positionPubkey: PublicKey,
     liquidityAmount: BN
-  ): Promise<TransactionInstruction[]> {
+  ): Promise<string> {
     if (!this.raydium || !this.poolInfo) {
       await this.initialize();
     }
 
     try {
-      const slippage = new Percent(DEFAULT_SLIPPAGE_BPS, 10000);
-
       // Get position info
       const allPositions = await this.raydium.clmm.getOwnerPositionInfo({
         programId: this.poolInfo.programId,
@@ -338,6 +290,8 @@ export class RaydiumCLMMIntegration {
       if (!positionAccount) {
         throw new Error('Position not found');
       }
+
+      console.log(`Decreasing liquidity: ${liquidityAmount.toString()}`);
 
       const { execute } = await this.raydium.clmm.decreaseLiquidity({
         poolInfo: this.poolInfo,
@@ -350,13 +304,12 @@ export class RaydiumCLMMIntegration {
         txVersion: TxVersion.V0,
       });
 
-      const txData = await execute.build({ wallet: this.wallet });
-      const ixs = txData.transaction.instructions;
-      console.log(`✓ Raydium decrease_liquidity_v2 instructions built (${ixs.length} ixs)`);
-      return ixs;
+      const { txId } = await execute({ sendAndConfirm: true });
+      console.log(`✓ Liquidity decreased: tx: ${txId}`);
+      return txId;
     } catch (err) {
-      console.error('buildDecreaseLiquidityInstructions failed:', err);
-      return [];
+      console.error('decreaseLiquidity failed:', err);
+      throw err;
     }
   }
 
