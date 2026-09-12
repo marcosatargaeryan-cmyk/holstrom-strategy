@@ -1,7 +1,7 @@
 import { Connection, Keypair, PublicKey, Transaction, TransactionInstruction } from '@solana/web3.js';
 import { MeteoraDLMMIntegration } from './meteoraIntegration';
 import { OrcaWhirlpoolIntegration } from './orcaIntegration';
-import { KaminoFlashLoanIntegration, KAMINO_SOL_RESERVE, KAMINO_USDC_RESERVE } from './flashLoanIntegration';
+import { FlashLoanIntegration, KAMINO_SOL_RESERVE, KAMINO_USDC_RESERVE } from './flashLoanIntegration';
 
 const CONFIG = {
   // Pool addresses (real mainnet addresses)
@@ -29,7 +29,7 @@ class HolstromIntegratedSDKStrategy {
   private wallet: Keypair;
   private meteora: MeteoraDLMMIntegration;
   private orca: OrcaWhirlpoolIntegration;
-  private flashLoan: KaminoFlashLoanIntegration;
+  private flashLoan: FlashLoanIntegration;
   private logs: string[] = [];
 
   constructor(connection: Connection, wallet: Keypair) {
@@ -38,7 +38,7 @@ class HolstromIntegratedSDKStrategy {
 
     this.meteora = new MeteoraDLMMIntegration(connection, wallet, CONFIG.poolA);
     this.orca = new OrcaWhirlpoolIntegration(connection, wallet, CONFIG.poolB);
-    this.flashLoan = new KaminoFlashLoanIntegration(connection, wallet);
+    this.flashLoan = new FlashLoanIntegration(connection, wallet);
   }
 
   async executeIntegratedTest(): Promise<IntegrationTestResult> {

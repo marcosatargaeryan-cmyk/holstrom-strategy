@@ -428,7 +428,7 @@ export async function testFlashLoanIntegration(
   wallet: Keypair
 ): Promise<void> {
   console.log('=== Testing Kamino Finance Flash Loan Integration ===\n');
-  const fl = new KaminoFlashLoanIntegration(connection, wallet);
+  const fl = new FlashLoanIntegration(connection, wallet);
 
   try {
     await fl.initialize();
