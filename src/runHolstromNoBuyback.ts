@@ -162,11 +162,10 @@ class HolstromNoBuybackStrategy {
       // 2. Raydium swap: drawdown (SOL → USDC)
       this.log('Step 2: Raydium drawdown swap (SOL → USDC)...');
       try {
-        const drawdownResult = await this.raydium.executeSwap(drawdownSOL, true);
+        const drawdownSig = await this.raydium.executeSwap(drawdownSOL, true);
         this.transactionCount++;
-        this.signatures.push(drawdownResult.signature);
-        this.log(`✓ Drawdown swap executed (tx: ${drawdownResult.signature})`);
-        this.log(`  Out: ${drawdownResult.outAmount.toString()} units`);
+        this.signatures.push(drawdownSig);
+        this.log(`✓ Drawdown swap executed (tx: ${drawdownSig})`);
       } catch (error) {
         this.log(`✗ Drawdown swap failed: ${error}`);
         throw error;
