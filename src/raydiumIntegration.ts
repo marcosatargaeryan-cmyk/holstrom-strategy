@@ -41,7 +41,6 @@ export interface PositionResult {
   lowerTick: number;
   upperTick: number;
   depositedUSDC: BN;
-  signature: string;
 }
 
 export class RaydiumCLMMIntegration {
@@ -121,7 +120,7 @@ export class RaydiumCLMMIntegration {
   async executeSwap(
     inputAmountSol: number,
     swapForY: boolean  // true = SOL→USDC, false = USDC→SOL
-  ): Promise<SwapResult> {
+  ): Promise<string> {
     if (!this.raydium || !this.poolInfo) {
       await this.initialize();
     }
@@ -147,13 +146,7 @@ export class RaydiumCLMMIntegration {
       console.log(`✓ Swap executed: ${txId}`);
       console.log(`  Estimated out: ${extInfo?.estimatedOut?.toString() || 'n/a'}`);
 
-      return {
-        inAmount: inputAmountBN,
-        outAmount: extInfo?.estimatedOut || new BN(0),
-        fee: new BN(0), // Not provided by SDK
-        priceImpact: 0, // Not provided by SDK
-        signature: txId,
-      };
+      return txId;
     } catch (err) {
       console.error('executeSwap failed:', err);
       throw err;
@@ -216,7 +209,6 @@ export class RaydiumCLMMIntegration {
         lowerTick: tickLower,
         upperTick: tickUpper,
         depositedUSDC: new BN(0), // Empty position initially
-        signature: txId,
       };
     } catch (err) {
       console.error('openPosition failed:', err);

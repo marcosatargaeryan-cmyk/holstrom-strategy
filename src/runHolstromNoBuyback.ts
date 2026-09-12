@@ -142,8 +142,7 @@ class HolstromNoBuybackStrategy {
         positionKeypair
       );
       this.transactionCount++;
-      this.signatures.push(positionResult.signature);
-      this.log(`✓ Position opened (tx: ${positionResult.signature})`);
+      this.log(`✓ Position opened`);
 
       // === Phase 4: Sequential Execution ===
       this.log('\n=== Phase 4: Sequential Strategy Execution ===');
@@ -192,10 +191,10 @@ class HolstromNoBuybackStrategy {
       const recursionSOL = 5; // Test amount
       this.log('Step 4: Raydium recursion sell (SOL → USDC)...');
       try {
-        const recursionSellResult = await this.raydium.executeSwap(recursionSOL, true);
+        const recursionSellSig = await this.raydium.executeSwap(recursionSOL, true);
         this.transactionCount++;
-        this.signatures.push(recursionSellResult.signature);
-        this.log(`✓ Recursion sell executed (tx: ${recursionSellResult.signature})`);
+        this.signatures.push(recursionSellSig);
+        this.log(`✓ Recursion sell executed (tx: ${recursionSellSig})`);
       } catch (error) {
         this.log(`✗ Recursion sell failed: ${error}`);
         this.log('⚠ Continuing without recursion sell');
@@ -204,10 +203,10 @@ class HolstromNoBuybackStrategy {
       // 5. Orca swap: recursion buy (USDC → SOL)
       this.log('Step 5: Orca recursion buy (USDC → SOL)...');
       try {
-        const recursionBuyResult = await this.orca.executeSwap(drawdownUSDC * 0.5, false);
+        const recursionBuySig = await this.orca.executeSwap(drawdownUSDC * 0.5, false);
         this.transactionCount++;
-        this.signatures.push(recursionBuyResult.signature);
-        this.log(`✓ Recursion buy executed (tx: ${recursionBuyResult.signature})`);
+        this.signatures.push(recursionBuySig);
+        this.log(`✓ Recursion buy executed (tx: ${recursionBuySig})`);
       } catch (error) {
         this.log(`✗ Recursion buy failed: ${error}`);
         this.log('⚠ Continuing without recursion buy');
@@ -244,10 +243,10 @@ class HolstromNoBuybackStrategy {
       // 8. Orca swap: final sale (SOL → USDC)
       this.log('Step 8: Orca final sale (SOL → USDC)...');
       try {
-        const finalSaleResult = await this.orca.executeSwap(10, true);
+        const finalSaleSig = await this.orca.executeSwap(10, true);
         this.transactionCount++;
-        this.signatures.push(finalSaleResult.signature);
-        this.log(`✓ Final sale executed (tx: ${finalSaleResult.signature})`);
+        this.signatures.push(finalSaleSig);
+        this.log(`✓ Final sale executed (tx: ${finalSaleSig})`);
       } catch (error) {
         this.log(`✗ Final sale failed: ${error}`);
         this.log('⚠ Continuing without final sale');

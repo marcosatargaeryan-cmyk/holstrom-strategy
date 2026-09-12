@@ -142,7 +142,7 @@ export interface ResolvedReserve {
   liquidityMint: PublicKey;
 }
 
-export class KaminoFlashLoanIntegration {
+export class FlashLoanIntegration {
   private connection: Connection;
   private wallet:     Keypair;
 
