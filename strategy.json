@@ -1,0 +1,17 @@
+{
+  "poolA": {
+    "dex": "raydium-clmm",
+    "address": "3ucNos4NbumPLZNWztqGHNFFgkHeRMBQAVemeeomsUxv",
+    "fee": 0.0004
+  },
+  "poolB": {
+    "dex": "orca-whirlpool",
+    "address": "Czfq3xZZDmsdGdUyrNLtRhGc47cXcZtLG4crryfu44zE",
+    "fee": 0.0004
+  },
+  "scenario": "no-buyback",
+  "drawdownPercent": 0.30,
+  "positionRangePercent": 0.01,
+  "flashLoanProvider": "kamino",
+  "flashLoanFee": 0.0009
+}
