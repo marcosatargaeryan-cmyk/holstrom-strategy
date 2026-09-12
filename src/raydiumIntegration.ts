@@ -131,7 +131,8 @@ export class RaydiumCLMMIntegration {
 
       console.log(`Executing Raydium swap: ${inputAmountSol.toFixed(4)} ${swapForY ? 'SOL→USDC' : 'USDC→SOL'}`);
 
-      const { execute, extInfo } = await this.raydium.clmm.swap({
+      // @ts-ignore - Raydium SDK types are strict, using any for flexibility
+      const { execute, extInfo } = await (this.raydium.clmm as any).swap({
         poolInfo: this.poolInfo,
         poolKeys: this.poolKeys,
         inputMint: swapForY ? this.poolInfo.mintA : this.poolInfo.mintB,
@@ -187,6 +188,7 @@ export class RaydiumCLMMIntegration {
       console.log(`Opening Raydium position ticks [${tickLower}, ${tickUpper}] (prices $${lowerBoundPrice}–$${upperBoundPrice})`);
 
       // Open position with minimal liquidity
+      // @ts-ignore - Raydium SDK types are strict, using any for flexibility
       const { execute } = await this.raydium!.clmm.openPositionFromBase({
         poolInfo: this.poolInfo,
         poolKeys: this.poolKeys,
@@ -241,6 +243,7 @@ export class RaydiumCLMMIntegration {
 
       console.log(`Increasing liquidity by ${usdcAmount.toFixed(2)} USDC`);
 
+      // @ts-ignore - Raydium SDK types are strict, using any for flexibility
       const { execute } = await this.raydium!.clmm.increasePositionFromBase({
         poolInfo: this.poolInfo,
         ownerPosition: positionAccount as any,
@@ -284,6 +287,7 @@ export class RaydiumCLMMIntegration {
 
       console.log(`Decreasing liquidity: ${liquidityAmount.toString()}`);
 
+      // @ts-ignore - Raydium SDK types are strict, using any for flexibility
       const { execute } = await this.raydium!.clmm.decreaseLiquidity({
         poolInfo: this.poolInfo,
         poolKeys: this.poolKeys,
